@@ -1,0 +1,44 @@
+source_page = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/shukuhakutokei.html"
+
+[[sources]]
+year = 2019
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001350484.xlsx"
+filename = "2019_final.xlsx"
+
+[[sources]]
+year = 2020
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001411547.xlsx"
+filename = "2020_final.xlsx"
+
+[[sources]]
+year = 2021
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001488438.xlsx"
+filename = "2021_final.xlsx"
+
+[[sources]]
+year = 2022
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001616676.xlsx"
+filename = "2022_final.xlsx"
+
+[[sources]]
+year = 2023
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/content/001750679.xlsx"
+filename = "2023_final.xlsx"
+
+[[sources]]
+year = 2024
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/content/001905499.xlsx"
+filename = "2024_final.xlsx"
+
+[[sources]]
+year = 2025
+release_type = "final"
+url = "https://www.mlit.go.jp/kankocho/content/002010340.xlsx"
+filename = "2025_final.xlsx"
+

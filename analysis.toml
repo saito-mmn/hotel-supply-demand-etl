@@ -1,0 +1,16 @@
+[analysis]
+base_year = 2019
+target_year = 2025
+release_type = "final"
+
+[thresholds]
+demand_below_base_pct = 90.0
+demand_yoy_decline_pct = -5.0
+demand_yoy_improvement_pct = 5.0
+occupancy_decline_pp = -5.0
+occupancy_improvement_pp = 2.0
+facility_growth_pct = 3.0
+absorption_gap_pct = -5.0
+foreign_share_shift_pp = 10.0
+foreign_share_concentration_pct = 50.0
+monthly_cv_high = 0.35
