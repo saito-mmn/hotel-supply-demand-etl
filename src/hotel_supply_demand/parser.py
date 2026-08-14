@@ -16,6 +16,7 @@ class WorkbookFormatError(ValueError):
 
 PREFECTURE = re.compile(r"^\s*(\d{2})(.+?[都道府県])\s*$")
 JAPANESE_DATE = re.compile(r"(平成|令和)(元|\d+)年(\d+)月")
+HEADER_SCAN_ROWS = 15
 
 
 def _number(value: object) -> int | float | None:
@@ -34,12 +35,33 @@ def _number(value: object) -> int | float | None:
     return None
 
 
-def _sheet_values(workbook, title: str, column: int) -> dict[int, tuple[str, int | float | None]]:
+def _normalized_text(value: object) -> str:
+    return re.sub(r"\s+", "", str(value or ""))
+
+
+def _find_column(workbook, title: str, header_prefix: str) -> int:
+    sheet = workbook[title]
+    matches: set[int] = set()
+    for row in sheet.iter_rows(min_row=1, max_row=HEADER_SCAN_ROWS, values_only=True):
+        for column, value in enumerate(row, 1):
+            if _normalized_text(value).startswith(header_prefix):
+                matches.add(column)
+    if len(matches) != 1:
+        raise WorkbookFormatError(
+            f"{title}: expected one column starting with {header_prefix!r}, found {sorted(matches)}"
+        )
+    return matches.pop()
+
+
+def _sheet_values(
+    workbook, title: str, header_prefix: str
+) -> dict[int, tuple[str, int | float | None]]:
     if title not in workbook.sheetnames:
         raise WorkbookFormatError(f"missing worksheet: {title}")
     sheet = workbook[title]
+    column = _find_column(workbook, title, header_prefix)
     result = {}
-    for row in sheet.iter_rows(min_row=7, values_only=True):
+    for row in sheet.iter_rows(values_only=True):
         match = PREFECTURE.match(str(row[0] or ""))
         if not match:
             continue
@@ -53,10 +75,18 @@ def _sheet_values(workbook, title: str, column: int) -> dict[int, tuple[str, int
 
 
 def _validate_period(workbook, title: str, expected_year: int, expected_month: int) -> None:
-    value = str(workbook[title]["A7"].value or "")
-    match = JAPANESE_DATE.search(value)
-    if not match:
-        raise WorkbookFormatError(f"{title}: cannot identify reporting period from A7")
+    sheet = workbook[title]
+    matches = []
+    for row in sheet.iter_rows(min_row=1, max_row=HEADER_SCAN_ROWS, values_only=True):
+        for value in row:
+            match = JAPANESE_DATE.search(str(value or ""))
+            if match:
+                matches.append(match)
+    if len(matches) != 1:
+        raise WorkbookFormatError(
+            f"{title}: expected one reporting period in the first {HEADER_SCAN_ROWS} rows, found {len(matches)}"
+        )
+    match = matches[0]
     era_year = 1 if match.group(2) == "元" else int(match.group(2))
     actual_year = (1988 if match.group(1) == "平成" else 2018) + era_year
     actual_month = int(match.group(3))
@@ -74,10 +104,10 @@ def parse_workbook(path: Path, year: int, release_type: str = "final") -> list[M
             _validate_period(workbook, f"第1表({month}月)", year, month)
             _validate_period(workbook, f"第4表({month}月)", year, month)
             _validate_period(workbook, f"第8表({month}月)", year, month)
-            facilities = _sheet_values(workbook, f"第1表({month}月)", 2)
-            total = _sheet_values(workbook, f"第4表({month}月)", 2)
-            foreign = _sheet_values(workbook, f"第4表({month}月)", 9)
-            occupancy = _sheet_values(workbook, f"第8表({month}月)", 2)
+            facilities = _sheet_values(workbook, f"第1表({month}月)", "総数")
+            total = _sheet_values(workbook, f"第4表({month}月)", "延べ宿泊者数")
+            foreign = _sheet_values(workbook, f"第4表({month}月)", "うち外国人延べ宿泊者数")
+            occupancy = _sheet_values(workbook, f"第8表({month}月)", "客室稼働率")
             for code in range(1, 48):
                 names = {facilities[code][0], total[code][0], foreign[code][0], occupancy[code][0]}
                 if len(names) != 1:

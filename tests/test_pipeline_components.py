@@ -17,13 +17,20 @@ def make_workbook(path: Path, year: int = 2025) -> None:
     for month in range(1, 13):
         for table in (1, 4, 8):
             sheet = workbook.create_sheet(f"第{table}表({month}月)")
-            sheet["A7"] = f"令和{year - 2018}年{month}月"
+            sheet["A9"] = f"令和{year - 2018}年{month}月"
+            if table == 1:
+                sheet["C4"] = "総数\n1)、2)"
+            elif table == 4:
+                sheet["C4"] = "延べ\n宿泊者数\n1)"
+                sheet["J4"] = "うち\n外国人延べ\n宿泊者数\n1)"
+            else:
+                sheet["C4"] = "客室稼働率\n1)、2)"
             for code in range(1, 48):
-                row = 7 + code
+                row = 9 + code
                 sheet.cell(row, 1, f"{code:02d}地域{code}県")
-                sheet.cell(row, 2, 50 if table == 8 else 100 + code)
+                sheet.cell(row, 3, 50 if table == 8 else 100 + code)
                 if table == 4:
-                    sheet.cell(row, 9, 10 + code)
+                    sheet.cell(row, 10, 10 + code)
     workbook.save(path)
 
 

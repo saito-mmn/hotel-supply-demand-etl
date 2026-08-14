@@ -52,9 +52,16 @@ class AnalysisTest(unittest.TestCase):
             rows = analyze_database(database, config)
             self.assertEqual(len(rows), 47)
             self.assertAlmostEqual(rows[0]["demand_vs_base_pct"], 99.0)
-            self.assertAlmostEqual(rows[0]["demand_yoy_pct"], -10.0)
-            self.assertAlmostEqual(rows[0]["occupancy_yoy_pp"], -10.0)
-            self.assertEqual(rows[0]["market_state"], "需要悪化兆候")
+            self.assertAlmostEqual(rows[0]["demand_ltm_yoy_pct"], -10.0)
+            self.assertAlmostEqual(rows[0]["occupancy_ltm_yoy_pp"], -10.0)
+            self.assertAlmostEqual(rows[0]["recent_demand_yoy_pct"], -10.0)
+            self.assertTrue(rows[0]["recent_all_demand_yoy_negative"])
+            self.assertEqual(rows[0]["demand_ltm_yoy_pct_relative"], "全国中位50%")
+            self.assertEqual(rows[0]["seasonal_occupancy_cv"], 0.0)
+            self.assertAlmostEqual(rows[0]["top3_demand_share_pct"], 25.0)
+            self.assertEqual(len(rows[0]["monthly_japanese_guests"]), 12)
+            self.assertEqual(len(rows[0]["monthly_foreign_guests"]), 12)
+            self.assertEqual(rows[0]["market_state"], "需要減速・中期縮小")
             self.assertTrue(rows[0]["is_watch"])
 
             reports = root / "reports"
@@ -63,4 +70,8 @@ class AnalysisTest(unittest.TestCase):
             self.assertEqual(result["watch_count"], 47)
             self.assertTrue((reports / "index.html").is_file())
             self.assertTrue((reports / "market-sheets" / "01.html").is_file())
-            self.assertIn("需要悪化兆候", (reports / "index.html").read_text(encoding="utf-8"))
+            self.assertIn("需要減速・中期縮小", (reports / "index.html").read_text(encoding="utf-8"))
+            self.assertIn(
+                "月別日本人・外国人延べ宿泊者数",
+                (reports / "market-sheets" / "01.html").read_text(encoding="utf-8"),
+            )
