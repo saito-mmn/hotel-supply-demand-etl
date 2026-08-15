@@ -98,6 +98,9 @@ src/hotel_supply_demand/
 ├── validation.py               現行の都道府県品質検証
 ├── database.py                 現行の都道府県DBロード
 ├── analysis.py                 都道府県分析
+├── config.py                   分析・レポート設定
+├── models.py                   都道府県月次共通レコード
+├── pipeline.py                 都道府県処理のオーケストレーション
 ├── report.py                   全国・都道府県レポート
 └── municipality/
     ├── models.py               市区町村月次共通レコード
@@ -106,7 +109,8 @@ src/hotel_supply_demand/
     ├── validation.py           市区町村月次レコードの品質検証
     ├── database.py             市区町村ファクトの冪等ロード
     ├── pipeline.py             月次処理のオーケストレーション
-    └── sources.py              e-Stat月次ソース設定の読込・検証
+    ├── report.py               市区町村一覧・Market Sheet生成
+    └── sources.py              月次ソース設定の読込・検証
 ```
 
 最終的には`prefecture/`、`municipality/`、`common/`へ整理しますが、構造変更と市区町村分析ロジックの追加を同時に行わず、レビュー可能な単位で段階的に移行します。
@@ -365,12 +369,10 @@ PYTHONPATH=src python -m hotel_supply_demand.cli fetch-sample \
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-現行版には次の既知の課題があります。
+## リポジトリと生成物の管理方針
 
-- Google ColabとGoogle Driveの絶対パスへの依存
-- rawデータと取得手順の不足
-- Excel読込などに必要な依存関係の不足
-- NotebookへのETL・分析・可視化処理の集中
-- 出力先とリポジトリ構成の不一致
-- 保存済みCSVと現在のNotebookコードの列定義の不一致
-- データ来歴、版管理、品質検証、テストの不足
+依存関係は`pyproject.toml`に一本化しています。Google Colab・Notebook中心の旧実装と旧CSVは現行ツリーから除外し、Gitタグ`legacy-colab-final`から参照・復元できる状態にしています。Raw Excel、SQLite、`.env`はGit管理しません。
+
+`reports/latest/`は、クラウド公開前にもポートフォリオの出力例をリポジトリ上でレビューできるよう、現段階では意図的にGit管理しています。静的サイトの自動デプロイ完成後に、デプロイ工程だけで生成する方針への切り替えを再検討します。
+
+現在の主な課題は、旧実装由来の再現性不足ではなく、市区町村parser・品質ルール・分析指標・レポート表示のレビューと、安全な定期更新・クラウド公開です。実施順序と完了条件は[v2ロードマップ](plan_memo/v2-roadmap.md)に記載しています。

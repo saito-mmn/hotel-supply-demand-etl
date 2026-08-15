@@ -12,6 +12,14 @@
 - **次工程**：ポートフォリオ公開前に必須とする作業
 - **Optional**：MVP公開後、運用上の必要性が確認された場合に追加する作業
 
+### 進捗（2026年8月）
+
+| Phase | 状態 | 備考 |
+|---|---|---|
+| Phase 0 | 完了 | レビュー前コミット`7824ded`とタグ`legacy-colab-final`で固定 |
+| Phase 1 | 完了 | 旧Colab資産を現行ツリーから除外し、依存関係を`pyproject.toml`へ一本化 |
+| Phase 2以降 | 未着手 | コード・データ品質レビューから実施 |
+
 ## 2. プロジェクトの目的
 
 ### 2.1 解決する業務課題
@@ -69,7 +77,7 @@ SQLite更新
 
 状態：**実装済み・parser、品質ルール、レポートはレビュー前**
 
-詳細は[データ辞書](data-dictionary.md)、[市区町村ソース収録状況](municipality-source-coverage.md)、[e-Stat API提供範囲調査](estat-api-audit.md)を参照する。
+詳細は[データ辞書](../docs/data-dictionary.md)、[市区町村ソース収録状況](../docs/municipality-source-coverage.md)、[e-Stat API提供範囲調査](../docs/estat-api-audit.md)を参照する。
 
 ## 4. 更新頻度とデータ採用方針
 
@@ -154,6 +162,14 @@ Phase 7  ポートフォリオ仕上げ・リリース
 - クリーン環境でインストールと全テストを実行できる
 - 旧資産をタグまたはGit履歴から復元できる
 - READMEの構成と実ファイルが一致する
+
+### 実施結果
+
+- `old/`と旧`requirements.txt`を現行ツリーから削除した。旧資産は`legacy-colab-final`から復元できる。
+- 現行実行時依存は`pyproject.toml`の`openpyxl`だけであり、開発用依存は`dev`オプションで管理する。
+- Raw Excel、SQLite、秘密情報は`.gitignore`の対象であることを再確認した。
+- `reports/latest/`は公開デモ未整備の間はレビュー用出力例としてGit管理を継続する。Phase 4・6の自動デプロイ完成時に再判断する。
+- `prefecture`相当の既存ルートモジュールと`municipality/`の大規模な移動・共通化は行わず、Phase 2で重複と境界をレビューしてから判断する。
 
 ## 8. Phase 2：コード・データ品質レビュー
 
