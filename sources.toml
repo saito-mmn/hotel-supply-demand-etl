@@ -5,40 +5,46 @@ year = 2019
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001350484.xlsx"
 filename = "2019_final.xlsx"
+published_on = "2020-06-30"
 
 [[sources]]
 year = 2020
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001411547.xlsx"
 filename = "2020_final.xlsx"
+published_on = "2021-06-30"
 
 [[sources]]
 year = 2021
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001488438.xlsx"
 filename = "2021_final.xlsx"
+published_on = "2022-06-30"
 
 [[sources]]
 year = 2022
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/tokei_hakusyo/content/001616676.xlsx"
 filename = "2022_final.xlsx"
+published_on = "2023-06-30"
 
 [[sources]]
 year = 2023
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/content/001750679.xlsx"
 filename = "2023_final.xlsx"
+published_on = "2024-06-28"
 
 [[sources]]
 year = 2024
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/content/001905499.xlsx"
 filename = "2024_final.xlsx"
+published_on = "2025-06-27"
 
 [[sources]]
 year = 2025
 release_type = "final"
 url = "https://www.mlit.go.jp/kankocho/content/002010340.xlsx"
 filename = "2025_final.xlsx"
-
+published_on = "2026-07-06"

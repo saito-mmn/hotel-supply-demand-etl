@@ -7,7 +7,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from .models import MonthlyRecord
+from .models import MonthlyRecord, NationalOccupancyRecord
 
 
 class WorkbookFormatError(ValueError):
@@ -131,6 +131,42 @@ def parse_workbook(path: Path, year: int, release_type: str = "final") -> list[M
                         release_type=release_type,
                     )
                 )
+    finally:
+        workbook.close()
+    return records
+
+
+def parse_national_occupancy(
+    path: Path, year: int, release_type: str = "final"
+) -> list[NationalOccupancyRecord]:
+    """Read the official national occupancy value from each monthly table 8."""
+    workbook = load_workbook(path, read_only=True, data_only=True)
+    records = []
+    try:
+        for month in range(1, 13):
+            title = f"第8表({month}月)"
+            _validate_period(workbook, title, year, month)
+            sheet = workbook[title]
+            column = _find_column(workbook, title, "客室稼働率")
+            value = None
+            for row in sheet.iter_rows(min_row=1, max_row=HEADER_SCAN_ROWS, values_only=True):
+                if JAPANESE_DATE.search(str(row[0] or "")):
+                    value = _number(row[column - 1])
+                    break
+            if value is None:
+                raise WorkbookFormatError(f"{title}: national occupancy rate missing")
+            if not 0 <= float(value) <= 100:
+                raise WorkbookFormatError(
+                    f"{title}: invalid national occupancy rate: {value}"
+                )
+            records.append(
+                NationalOccupancyRecord(
+                    year=year,
+                    month=month,
+                    occupancy_rate=float(value),
+                    release_type=release_type,
+                )
+            )
     finally:
         workbook.close()
     return records

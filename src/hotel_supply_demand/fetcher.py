@@ -65,6 +65,7 @@ def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> 
             if digest == previous.get("sha256") and source.url == previous.get("url"):
                 previous.setdefault("period_start", f"{source.year}-01")
                 previous.setdefault("period_end", f"{source.year}-12")
+                previous["published_on"] = source.published_on
                 results.append({**previous, "status": "skipped"})
                 continue
 
@@ -97,6 +98,7 @@ def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> 
                 "filename": source.filename,
                 "period_start": f"{source.year}-01",
                 "period_end": f"{source.year}-12",
+                "published_on": source.published_on,
                 "retrieved_at": datetime.now(timezone.utc).isoformat(),
                 "sha256": digest,
                 "size_bytes": destination.stat().st_size,

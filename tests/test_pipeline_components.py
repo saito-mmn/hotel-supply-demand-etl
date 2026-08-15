@@ -7,7 +7,7 @@ from openpyxl import Workbook
 
 from hotel_supply_demand.database import build_database
 from hotel_supply_demand.fetcher import FetchError, sha256_file, validate_xlsx
-from hotel_supply_demand.parser import parse_workbook
+from hotel_supply_demand.parser import parse_national_occupancy, parse_workbook
 from hotel_supply_demand.validation import DataQualityError, validate_records
 
 
@@ -25,6 +25,7 @@ def make_workbook(path: Path, year: int = 2025) -> None:
                 sheet["J4"] = "うち\n外国人延べ\n宿泊者数\n1)"
             else:
                 sheet["C4"] = "客室稼働率\n1)、2)"
+                sheet["C9"] = 55
             for code in range(1, 48):
                 row = 9 + code
                 sheet.cell(row, 1, f"{code:02d}地域{code}県")
@@ -42,13 +43,15 @@ class PipelineComponentsTest(unittest.TestCase):
             database = root / "result.sqlite3"
             make_workbook(xlsx)
             records = parse_workbook(xlsx, 2025)
+            national = parse_national_occupancy(xlsx, 2025)
             self.assertEqual(validate_records(records, {2025})["rows"], 564)
-            manifest = [{"year": 2025, "release_type": "final", "url": "https://www.mlit.go.jp/source.xlsx", "filename": "source.xlsx", "retrieved_at": "2026-01-01T00:00:00+00:00", "sha256": sha256_file(xlsx), "size_bytes": xlsx.stat().st_size}]
-            build_database(database, records, manifest)
+            manifest = [{"year": 2025, "release_type": "final", "url": "https://www.mlit.go.jp/source.xlsx", "filename": "source.xlsx", "published_on": "2026-07-06", "retrieved_at": "2026-01-01T00:00:00+00:00", "sha256": sha256_file(xlsx), "size_bytes": xlsx.stat().st_size}]
+            build_database(database, records, manifest, national)
             connection = sqlite3.connect(database)
             try:
                 self.assertEqual(connection.execute("SELECT count(*) FROM monthly_demand").fetchone()[0], 564)
                 self.assertEqual(connection.execute("SELECT count(*) FROM monthly_supply").fetchone()[0], 564)
+                self.assertEqual(connection.execute("SELECT count(*) FROM national_occupancy").fetchone()[0], 12)
             finally:
                 connection.close()
 

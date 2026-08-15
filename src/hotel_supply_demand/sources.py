@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -18,6 +19,7 @@ class Source:
     release_type: str
     url: str
     filename: str
+    published_on: str
 
 
 def load_sources(path: Path, years: set[int] | None = None) -> list[Source]:
@@ -31,6 +33,7 @@ def load_sources(path: Path, years: set[int] | None = None) -> list[Source]:
             release_type=str(raw["release_type"]),
             url=str(raw["url"]),
             filename=str(raw["filename"]),
+            published_on=str(raw["published_on"]),
         )
         key = (source.year, source.release_type)
         parsed = urlparse(source.url)
@@ -40,6 +43,12 @@ def load_sources(path: Path, years: set[int] | None = None) -> list[Source]:
             raise SourceConfigurationError(f"untrusted source URL: {source.url}")
         if Path(source.filename).name != source.filename or not source.filename.endswith(".xlsx"):
             raise SourceConfigurationError(f"unsafe source filename: {source.filename}")
+        try:
+            date.fromisoformat(source.published_on)
+        except ValueError as exc:
+            raise SourceConfigurationError(
+                f"invalid publication date for {source.year}: {source.published_on}"
+            ) from exc
         seen.add(key)
         if years is None or source.year in years:
             result.append(source)

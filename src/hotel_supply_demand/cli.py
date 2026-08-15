@@ -47,7 +47,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_pipeline_paths(pipeline)
     _add_report_options(pipeline, allow_skip=True)
 
-    monitor = subparsers.add_parser("monitor", help="Generate market sheets and watchlist")
+    monitor = subparsers.add_parser("monitor", help="Generate national and prefecture market reports")
     monitor.add_argument("--database", type=Path, default=Path("data/processed/hotel_market.sqlite3"))
     _add_report_options(monitor)
 

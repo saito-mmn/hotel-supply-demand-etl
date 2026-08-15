@@ -15,3 +15,11 @@ class MonthlyRecord:
     occupancy_rate: float | None
     facilities: int | None
     release_type: str = "final"
+
+
+@dataclass(frozen=True)
+class NationalOccupancyRecord:
+    year: int
+    month: int
+    occupancy_rate: float
+    release_type: str = "final"

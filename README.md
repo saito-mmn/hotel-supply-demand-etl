@@ -1,7 +1,7 @@
 # Hotel Supply & Demand ETL
 
 > [!IMPORTANT]
-> Google Colab上の旧分析を、ホテル不動産の担保評価・与信管理を支援する宿泊市場マクロモニタリング基盤へ再構築しました。公式ExcelからSQLiteを再生成するPhase 1と、分析・ウォッチ判定・静的レポートを生成するPhase 2を実装済みです。
+> Google Colab上の旧分析を、ホテル不動産の担保評価・与信管理を支援する宿泊市場マクロモニタリング基盤へ再構築しました。公式ExcelからSQLiteを再生成するPhase 1と、全国・都道府県の時系列レポートを生成するPhase 2を実装済みです。
 
 > [!WARNING]
 > `docs/memo/change_request.md`に記載した修正事項と、それを反映した分析・parser・レポートコードはレビュー前です。指標定義、方向判定、相対評価、生成結果は暫定版であり、独立したコードレビューと分析妥当性レビューが完了するまで確定仕様として扱いません。
@@ -16,14 +16,14 @@ API提供範囲を実測した結果、2019・2024・2025年の年確定値は�
 
 担保評価・審査・与信管理の担当者が、ホテルを取り巻く都道府県単位の市場環境を把握し、評価前提や個別ホテルの実績について追加確認が必要な変化を検知することを目的とします。
 
-本システムは担保価値、融資可否、LTV、個別ホテルの収益性を自動算定するものではありません。成果物は、地域のマクロ環境を整理する都道府県別マーケットシートと市場ウォッチリストを想定しています。
+本システムは担保価値、融資可否、LTV、個別ホテルの収益性を自動算定するものではありません。成果物は、全国の地合いを確認するダッシュボードと、担保物件所在地の推移を確認する都道府県別Market Sheetです。
 
 ### 技術的な取り組み
 
 v2では、次の機能を段階的に実装します。
 
 - `sources.toml`に明示した公式URLからExcelを取得する処理
-- URL、取得日時、SHA-256による来歴管理と、同一ファイルの再取得を避ける冪等性
+- URL、公表日、取得日時、SHA-256による来歴管理と、同一ファイルの再取得を避ける冪等性
 - 2019～2025年の年確定値 `.xlsx` を共通スキーマへ正規化する処理
 - e-Stat APIの提供範囲・統計表・分類コードを調査するAPIクライアント
 - API提供状況が変わった場合の公式Excelとの標本照合
@@ -36,7 +36,9 @@ v2では、次の機能を段階的に実装します。
 - fixtureを用いたparserテスト、回帰テスト、統合テスト
 - テストによる取得・変換・品質検証の自動確認
 - SQL viewを介した分析用月次・年次データの提供
-- 都道府県別マーケットシートと市場ウォッチリストの生成
+- 公式全国客室稼働率、インライン市場breadth、インバウンド・季節変動ランキングの生成
+- 施設数を含む47都道府県一覧の検索・数値ソート
+- 需要・客室稼働率の時系列と施設数KPIを示す都道府県別Market Sheetの生成
 
 この再構築を通じて、外部の非構造データを取得・正規化するだけでなく、出典、版、品質、再実行性、下流利用まで考慮した小規模データパイプラインの設計・実装を目指します。
 
@@ -51,7 +53,7 @@ e-Stat APIの実測結果は [e-Stat API 提供範囲調査](docs/estat-api-audi
 
 ## 現在の状態
 
-Phase 1では、2019～2025年の公式年確定値Excelについて、固定URLからの安全な取得、manifest・SHA-256による来歴管理、共通スキーマへの変換、品質検証、需要・供給SQLiteの再生成まで実装しています。Phase 2では、Recovery、Demand Mix、Momentum、Supply-Demandの4軸について、2019年同月終了LTM比、LTM YoY、直近3か月YoY、全国分布内の相対位置を計算します。Seasonal CVと上位3か月集中度は警戒判定ではなく市場特性として併記し、47都道府県のマーケットシートと市場ウォッチリストをCSV・HTMLで生成します。入力Excel、manifest、生成DBは再生成可能なためGit管理しません。
+Phase 1では、2019～2025年の公式年確定値Excelについて、固定URLからの安全な取得、manifest・SHA-256による来歴管理、都道府県月次値と公式全国客室稼働率の正規化、品質検証、SQLite再生成まで実装しています。Phase 2では、全国客室稼働率、市場回復の広がりを示すインライン指標、インバウンド、季節変動、検索・ソート可能な47都道府県一覧を全国ダッシュボードへ表示します。県別Market Sheetでは、延べ宿泊者数の直近3年月次推移と3か年の年次需要構造、客室稼働率の直近3年＋2019年比較、施設数KPIを確認できます。入力Excel、manifest、生成DBは再生成可能なためGit管理しません。
 
 ### 処理フローとモジュール構成
 
@@ -84,12 +86,12 @@ pipeline.py                      処理順序の制御（オーケストレー�
 | `pipeline.py` | 取得、ハッシュ照合、変換、検証、DB生成を所定の順序で接続する |
 | `sources.py` | `sources.toml`を読み込み、対象年、URL、ファイル名を検証する |
 | `fetcher.py` | 公式Excelを一時ファイルへ取得し、XLSX形式とSHA-256を検証してRaw領域へ保存する |
-| `parser.py` | 年度別Excelの第1表・第4表・第8表を`MonthlyRecord`へ正規化する |
+| `parser.py` | 年度別Excelの第1表・第4表・第8表を都道府県月次値と公式全国客室稼働率へ正規化する |
 | `validation.py` | 47都道府県、12か月、重複、負数、稼働率などの品質ルールを適用する |
 | `database.py` | 需要・供給・出典をSQLiteへ格納し、成功したDBを原子的に置き換える |
 | `models.py` | モジュール間で受け渡す共通月次データモデルを定義する |
 | `analysis.py` | DBからLTM・直近3か月指標と全国相対順位を計算し、方向の組み合わせから市場状態と検知理由を生成する |
-| `report.py` | 47都道府県の分析CSV、ウォッチリスト、日本人・外国人需要構成を含む静的HTMLマーケットシートを生成する |
+| `report.py` | 全国の市況・breadth・ランキングと、需要・稼働率の県別時系列、施設数KPIを生成する |
 | `estat_client.py` | e-Stat APIの提供範囲とメタデータを調査する外部APIクライアント |
 
 この分割により、取得元、Excel形式、品質ルール、保存先のいずれかが変わった場合でも、変更範囲を該当モジュールへ限定し、それぞれを独立してテストできます。品質検証が成功するまでDBを更新しないことも、処理順序として明示しています。
@@ -102,6 +104,7 @@ pipeline.py                      処理順序の制御（オーケストレー�
 erDiagram
     SOURCE_FILES ||--o{ MONTHLY_DEMAND : provides
     SOURCE_FILES ||--o{ MONTHLY_SUPPLY : provides
+    SOURCE_FILES ||--o{ NATIONAL_OCCUPANCY : provides
     PREFECTURES ||--o{ MONTHLY_DEMAND : identifies
     PREFECTURES ||--o{ MONTHLY_SUPPLY : identifies
 
@@ -111,6 +114,7 @@ erDiagram
         TEXT release_type
         TEXT url
         TEXT filename
+        TEXT published_on
         TEXT retrieved_at
         TEXT sha256
         INTEGER size_bytes
@@ -141,6 +145,14 @@ erDiagram
         INTEGER facilities
         INTEGER source_file_id FK
     }
+
+    NATIONAL_OCCUPANCY {
+        INTEGER year PK
+        INTEGER month PK
+        TEXT release_type PK
+        REAL occupancy_rate
+        INTEGER source_file_id FK
+    }
 ```
 
 各列の定義、単位、欠測値の扱いは[データ辞書](docs/data-dictionary.md)に記載しています。分析用Viewは永続テーブルと分けています。
@@ -169,12 +181,11 @@ python -m venv .venv
 
 主な成果物は次のとおりです。
 
-- [`reports/latest/index.html`](reports/latest/index.html)：47都道府県の市場状態と検知理由
-- `reports/latest/market-sheets/`：県別の指標、月次需要、観測事実、次の確認事項
+- [`reports/latest/index.html`](reports/latest/index.html)：全国客室稼働率、市場breadth、インバウンド・季節変動ランキング、検索・ソート可能な都道府県一覧
+- `reports/latest/market-sheets/`：県別Summary、需要・客室稼働率の月次時系列、施設数KPI
 - `reports/latest/prefecture-market.csv`：全47県の分析結果
-- `reports/latest/watchlist.csv`：設定した条件に該当する市場
 
-2025年12月終了LTMでは31県が方向ベースの追加調査トリガーに該当しました。この件数は信用リスクの高い県数ではなく、対象ホテル・商圏の追加確認を促す一次スクリーニング結果です。変化幅が小さくても正負の方向で検知するため、実数値と全国相対位置を併読します。指標、シグナル、分類順序、利用上の制約は[分析方法論](docs/methodology.md)、分析期間は[`analysis.toml`](analysis.toml)に明示しています。
+全国値には47都道府県の単純平均ではなく、観光庁Excel第8表の全国客室稼働率を使用します。都道府県別の平均稼働率は月次12値の単純平均です。指標定義と利用上の制約は[分析方法論](docs/methodology.md)、分析期間は[`analysis.toml`](analysis.toml)に明示しています。
 
 特定年だけを検証する場合は、たとえば `--years 2019 2024 2025` を付けます。全テストは次で実行できます。
 

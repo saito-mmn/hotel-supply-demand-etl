@@ -4,14 +4,15 @@ import os
 import sqlite3
 from pathlib import Path
 
-from .models import MonthlyRecord
+from .models import MonthlyRecord, NationalOccupancyRecord
 
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE source_files (
   id INTEGER PRIMARY KEY, year INTEGER NOT NULL, release_type TEXT NOT NULL,
-  url TEXT NOT NULL, filename TEXT NOT NULL, retrieved_at TEXT NOT NULL,
+  url TEXT NOT NULL, filename TEXT NOT NULL, published_on TEXT NOT NULL,
+  retrieved_at TEXT NOT NULL,
   sha256 TEXT NOT NULL, size_bytes INTEGER NOT NULL, UNIQUE(year, release_type)
 );
 CREATE TABLE prefectures (code INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);
@@ -28,6 +29,12 @@ CREATE TABLE monthly_supply (
   release_type TEXT NOT NULL, facilities INTEGER, source_file_id INTEGER NOT NULL,
   PRIMARY KEY(year, month, prefecture_code, release_type),
   FOREIGN KEY(prefecture_code) REFERENCES prefectures(code),
+  FOREIGN KEY(source_file_id) REFERENCES source_files(id)
+);
+CREATE TABLE national_occupancy (
+  year INTEGER NOT NULL, month INTEGER NOT NULL, release_type TEXT NOT NULL,
+  occupancy_rate REAL NOT NULL, source_file_id INTEGER NOT NULL,
+  PRIMARY KEY(year, month, release_type),
   FOREIGN KEY(source_file_id) REFERENCES source_files(id)
 );
 CREATE INDEX demand_prefecture_period ON monthly_demand(prefecture_code, year, month);
@@ -76,7 +83,12 @@ GROUP BY year, prefecture_code, prefecture_name, release_type;
 """
 
 
-def build_database(path: Path, records: list[MonthlyRecord], manifest_entries: list[dict]) -> None:
+def build_database(
+    path: Path,
+    records: list[MonthlyRecord],
+    manifest_entries: list[dict],
+    national_occupancy: list[NationalOccupancyRecord] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     if temporary.exists():
@@ -87,8 +99,8 @@ def build_database(path: Path, records: list[MonthlyRecord], manifest_entries: l
         source_ids = {}
         for entry in manifest_entries:
             cursor = connection.execute(
-                "INSERT INTO source_files(year,release_type,url,filename,retrieved_at,sha256,size_bytes) VALUES(?,?,?,?,?,?,?)",
-                (entry["year"], entry["release_type"], entry["url"], entry["filename"], entry["retrieved_at"], entry["sha256"], entry["size_bytes"]),
+                "INSERT INTO source_files(year,release_type,url,filename,published_on,retrieved_at,sha256,size_bytes) VALUES(?,?,?,?,?,?,?,?)",
+                (entry["year"], entry["release_type"], entry["url"], entry["filename"], entry["published_on"], entry["retrieved_at"], entry["sha256"], entry["size_bytes"]),
             )
             source_ids[(entry["year"], entry["release_type"])] = cursor.lastrowid
         connection.executemany("INSERT INTO prefectures(code,name) VALUES(?,?)", sorted({(r.prefecture_code, r.prefecture_name) for r in records}))
@@ -99,6 +111,19 @@ def build_database(path: Path, records: list[MonthlyRecord], manifest_entries: l
         connection.executemany(
             "INSERT INTO monthly_supply VALUES(?,?,?,?,?,?)",
             [(r.year,r.month,r.prefecture_code,r.release_type,r.facilities,source_ids[(r.year,r.release_type)]) for r in records],
+        )
+        connection.executemany(
+            "INSERT INTO national_occupancy VALUES(?,?,?,?,?)",
+            [
+                (
+                    r.year,
+                    r.month,
+                    r.release_type,
+                    r.occupancy_rate,
+                    source_ids[(r.year, r.release_type)],
+                )
+                for r in national_occupancy or []
+            ],
         )
         connection.commit()
     finally:

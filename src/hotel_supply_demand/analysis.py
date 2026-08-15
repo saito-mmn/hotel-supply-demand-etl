@@ -124,6 +124,16 @@ def _direction(value: float | None) -> str:
     return "↑" if value > 0 else "↓" if value < 0 else "→"
 
 
+def _supply_demand_pattern(demand_yoy: float, facility_yoy: float) -> str:
+    if demand_yoy > 0 and facility_yoy <= 0:
+        return "需要先行・需給タイト化方向"
+    if demand_yoy > 0 and facility_yoy > 0:
+        return "需要・施設数ともに増加"
+    if demand_yoy <= 0 and facility_yoy > 0:
+        return "需要減少・施設数増加"
+    return "需要・施設数ともに減少"
+
+
 def _percentile_ranks(rows: list[dict], field: str) -> None:
     values = sorted(row[field] for row in rows if row[field] is not None)
     for row in rows:
@@ -148,7 +158,7 @@ def _signals(metrics: dict) -> list[str]:
     if metrics["demand_ltm_yoy_pct"] < 0:
         signals.append("中期縮小")
     if metrics["recent_all_occupancy_yoy_negative"]:
-        signals.append("稼働悪化")
+        signals.append("直近3か月連続稼働悪化")
     if metrics["facility_ltm_yoy_pct"] > 0 and metrics["occupancy_ltm_yoy_pp"] < 0:
         signals.append("供給増加警戒")
     if metrics["demand_ltm_yoy_pct"] > 0 and metrics["occupancy_ltm_yoy_pp"] > 0 and metrics["facility_ltm_yoy_pct"] <= 0:
@@ -157,6 +167,8 @@ def _signals(metrics: dict) -> list[str]:
         signals.append("供給追随型成長")
     if metrics["foreign_ltm_yoy_pct"] > metrics["demand_ltm_yoy_pct"] and metrics["foreign_share_yoy_pp"] > 0:
         signals.append("インバウンド主導")
+    if metrics["foreign_share_yoy_pp"] > 0:
+        signals.append("インバウンド比率上昇")
     if metrics["demand_vs_base_pct"] > 100:
         signals.append("コロナ前水準超過")
     return signals
@@ -171,7 +183,7 @@ def _classify(signals: list[str]) -> str:
         return "足元需要減速"
     if "中期縮小" in signals:
         return "中期縮小"
-    if "稼働悪化" in signals:
+    if "直近3か月連続稼働悪化" in signals:
         return "足元稼働悪化"
     if "インバウンド主導" in signals and ("需要先行型成長" in signals or "供給追随型成長" in signals):
         return "インバウンド主導・需要拡大型"
@@ -220,6 +232,9 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
             base_total = _sum(base, "total_guests")
             foreign = _sum(current, "foreign_guests")
             previous_foreign = _sum(previous, "foreign_guests")
+            base_foreign = _sum(base, "foreign_guests")
+            japanese = _sum(current, "japanese_guests")
+            previous_japanese = _sum(previous, "japanese_guests")
             foreign_share = _ratio(foreign, total)
             previous_foreign_share = _ratio(previous_foreign, previous_total)
             recent_demand_yoy = _monthly_yoy(recent, recent_previous, "total_guests")
@@ -247,12 +262,18 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
                 "total_guests": total,
                 "average_occupancy_rate": _mean(current, "occupancy_rate"),
                 "average_facilities": _mean(current, "facilities"),
+                "facilities": float(current[-1]["facilities"]),
                 "foreign_share_pct": foreign_share,
                 "demand_vs_base_pct": _ratio(total, base_total),
+                "occupancy_vs_base_pp": _mean(current, "occupancy_rate")
+                - _mean(base, "occupancy_rate"),
+                "foreign_vs_base_pct": _ratio(foreign, base_foreign),
                 "demand_ltm_yoy_pct": _pct_change(total, previous_total),
                 "foreign_ltm_yoy_pct": _pct_change(foreign, previous_foreign),
+                "japanese_ltm_yoy_pct": _pct_change(japanese, previous_japanese),
                 "occupancy_ltm_yoy_pp": _mean(current, "occupancy_rate") - _mean(previous, "occupancy_rate"),
                 "facility_ltm_yoy_pct": _pct_change(_mean(current, "facilities"), _mean(previous, "facilities")),
+                "facility_yoy_pct": _pct_change(current[-1]["facilities"], previous[-1]["facilities"]),
                 "foreign_share_yoy_pp": foreign_share - previous_foreign_share,
                 "recent_demand_yoy_pct": _pct_change(_sum(recent, "total_guests"), _sum(recent_previous, "total_guests")),
                 "recent_occupancy_yoy_pp": _mean(recent, "occupancy_rate") - _mean(recent_previous, "occupancy_rate"),
@@ -262,12 +283,15 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
                 "peak_month_share_pct": max(monthly_demand) / sum(monthly_demand) * 100,
                 "seasonal_occupancy_cv": statistics.pstdev(monthly_occupancy)
                 / statistics.mean(monthly_occupancy),
+                "occupancy_seasonal_range_pp": max(monthly_occupancy)
+                - min(monthly_occupancy),
                 "top3_demand_share_pct": sum(sorted(monthly_demand, reverse=True)[:3])
                 / sum(monthly_demand)
                 * 100,
                 "monthly_total_guests": monthly_demand,
                 "monthly_japanese_guests": monthly_japanese,
                 "monthly_foreign_guests": monthly_foreign,
+                "monthly_occupancy_rate": monthly_occupancy,
                 "monthly_labels": [f"{year}-{month:02d}" for year, month in current_periods],
                 "data_quality_note": "",
             }
@@ -275,10 +299,38 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
             metrics["demand_mix_direction"] = _direction(metrics["foreign_share_yoy_pp"])
             metrics["momentum_direction"] = _direction(metrics["demand_ltm_yoy_pct"])
             metrics["supply_demand_direction"] = _direction(metrics["occupancy_ltm_yoy_pp"])
+            metrics["supply_demand_pattern"] = _supply_demand_pattern(
+                metrics["demand_ltm_yoy_pct"], metrics["facility_ltm_yoy_pct"]
+            )
             signals = _signals(metrics)
             metrics["signals"] = signals
+            metrics["recovery_signals"] = [
+                "2019年需要水準超過"
+                if metrics["demand_vs_base_pct"] > 100
+                else "2019年需要水準未達"
+                if metrics["demand_vs_base_pct"] < 100
+                else "2019年需要水準と同水準"
+            ]
+            metrics["demand_mix_signals"] = [
+                signal
+                for signal in signals
+                if signal in {"インバウンド主導", "インバウンド比率上昇"}
+            ]
+            metrics["momentum_signals"] = [
+                signal
+                for signal in signals
+                if signal in {"需要減速", "中期縮小", "需要先行型成長", "供給追随型成長"}
+            ]
+            metrics["supply_demand_signals"] = [
+                signal
+                for signal in signals
+                if signal in {"直近3か月連続稼働悪化", "供給増加警戒"}
+            ]
             metrics["watch_reasons"] = [
-                signal for signal in signals if signal in {"需要減速", "中期縮小", "稼働悪化", "供給増加警戒"}
+                signal
+                for signal in signals
+                if signal
+                in {"需要減速", "中期縮小", "直近3か月連続稼働悪化", "供給増加警戒"}
             ]
             metrics["is_watch"] = bool(metrics["watch_reasons"])
             metrics["market_state"] = _classify(signals)
@@ -304,6 +356,7 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
             if metrics["top3_demand_share_pct_relative"] == "全国上位25%":
                 characteristics.append("ピーク集中型")
             metrics["market_characteristics"] = characteristics
+            metrics["seasonality_signals"] = characteristics
         return output
     finally:
         connection.close()
