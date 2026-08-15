@@ -37,8 +37,36 @@ CREATE TABLE national_occupancy (
   PRIMARY KEY(year, month, release_type),
   FOREIGN KEY(source_file_id) REFERENCES source_files(id)
 );
+CREATE TABLE municipality_source_files (
+  id INTEGER PRIMARY KEY,
+  year INTEGER NOT NULL, month INTEGER NOT NULL, release_type TEXT NOT NULL,
+  stat_inf_id TEXT NOT NULL, url TEXT NOT NULL, filename TEXT NOT NULL,
+  published_on TEXT NOT NULL, retrieved_at TEXT NOT NULL,
+  sha256 TEXT NOT NULL, size_bytes INTEGER NOT NULL,
+  UNIQUE(year, month, release_type), UNIQUE(stat_inf_id)
+);
+CREATE TABLE municipalities (
+  id INTEGER PRIMARY KEY, prefecture_code INTEGER NOT NULL,
+  prefecture_name TEXT NOT NULL, municipality_name TEXT NOT NULL,
+  UNIQUE(prefecture_code, municipality_name)
+);
+CREATE TABLE monthly_municipality_market (
+  year INTEGER NOT NULL, month INTEGER NOT NULL, municipality_id INTEGER NOT NULL,
+  room_size_class TEXT NOT NULL, release_type TEXT NOT NULL,
+  total_guests INTEGER, japanese_guests INTEGER, foreign_guests INTEGER,
+  occupied_rooms REAL, occupancy_rate REAL,
+  population_facilities INTEGER, responding_facilities INTEGER,
+  source_file_id INTEGER NOT NULL,
+  PRIMARY KEY(year, month, municipality_id, room_size_class, release_type),
+  FOREIGN KEY(municipality_id) REFERENCES municipalities(id),
+  FOREIGN KEY(source_file_id) REFERENCES municipality_source_files(id),
+  CHECK(room_size_class IN ('total', '1_to_9', '10_to_19', '20_plus')),
+  CHECK(occupancy_rate IS NULL OR occupancy_rate BETWEEN 0 AND 200)
+);
 CREATE INDEX demand_prefecture_period ON monthly_demand(prefecture_code, year, month);
 CREATE INDEX supply_prefecture_period ON monthly_supply(prefecture_code, year, month);
+CREATE INDEX municipality_market_period
+  ON monthly_municipality_market(year, month, room_size_class);
 CREATE VIEW latest_monthly_demand AS
 WITH ranked AS (
   SELECT d.*,
@@ -83,6 +111,37 @@ GROUP BY year, prefecture_code, prefecture_name, release_type;
 """
 
 
+def _preserve_municipality_data(connection: sqlite3.Connection, previous: Path) -> None:
+    if not previous.exists():
+        return
+    connection.execute("ATTACH DATABASE ? AS previous", (str(previous),))
+    try:
+        names = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM previous.sqlite_master WHERE type='table'"
+            )
+        }
+        required = {
+            "municipality_source_files",
+            "municipalities",
+            "monthly_municipality_market",
+        }
+        if required.issubset(names):
+            connection.execute(
+                "INSERT INTO municipality_source_files SELECT * FROM previous.municipality_source_files"
+            )
+            connection.execute(
+                "INSERT INTO municipalities SELECT * FROM previous.municipalities"
+            )
+            connection.execute(
+                "INSERT INTO monthly_municipality_market SELECT * FROM previous.monthly_municipality_market"
+            )
+        connection.commit()
+    finally:
+        connection.execute("DETACH DATABASE previous")
+
+
 def build_database(
     path: Path,
     records: list[MonthlyRecord],
@@ -125,6 +184,7 @@ def build_database(
                 for r in national_occupancy or []
             ],
         )
+        _preserve_municipality_data(connection, path)
         connection.commit()
     finally:
         connection.close()

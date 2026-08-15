@@ -18,6 +18,15 @@ from .pipeline import run_pipeline
 from .report import generate_reports
 from .sources import SourceConfigurationError, load_sources
 from .validation import DataQualityError
+from .municipality.fetcher import fetch_municipality_sources
+from .municipality.parser import MunicipalityWorkbookFormatError
+from .municipality.pipeline import run_municipality_pipeline
+from .municipality.report import generate_municipality_reports
+from .municipality.sources import (
+    MunicipalitySourceConfigurationError,
+    load_municipality_sources,
+)
+from .municipality.validation import MunicipalityDataQualityError
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -51,6 +60,37 @@ def _build_parser() -> argparse.ArgumentParser:
     monitor.add_argument("--database", type=Path, default=Path("data/processed/hotel_market.sqlite3"))
     _add_report_options(monitor)
 
+    municipality_fetch = subparsers.add_parser(
+        "municipality-fetch", help="Download configured municipality second-preliminary Excel files"
+    )
+    _add_municipality_paths(municipality_fetch, include_database=False)
+
+    municipality_build = subparsers.add_parser(
+        "municipality-build-db",
+        help="Load downloaded municipality Excel files into SQLite",
+    )
+    _add_municipality_paths(municipality_build)
+
+    municipality_pipeline = subparsers.add_parser(
+        "municipality-pipeline",
+        help="Download, validate, and load municipality monthly statistics",
+    )
+    _add_municipality_paths(municipality_pipeline)
+    municipality_pipeline.add_argument(
+        "--report-dir", type=Path, default=Path("reports/latest/municipalities")
+    )
+    municipality_pipeline.add_argument("--skip-report", action="store_true")
+
+    municipality_report = subparsers.add_parser(
+        "municipality-report", help="Generate municipality market reports from SQLite"
+    )
+    municipality_report.add_argument(
+        "--database", type=Path, default=Path("data/processed/hotel_market.sqlite3")
+    )
+    municipality_report.add_argument(
+        "--report-dir", type=Path, default=Path("reports/latest/municipalities")
+    )
+
     return parser
 
 
@@ -69,6 +109,36 @@ def _add_report_options(parser: argparse.ArgumentParser, allow_skip: bool = Fals
     parser.add_argument("--base-year", type=int)
     if allow_skip:
         parser.add_argument("--skip-report", action="store_true")
+
+
+def _add_municipality_paths(
+    parser: argparse.ArgumentParser, include_database: bool = True
+) -> None:
+    parser.add_argument(
+        "--sources", type=Path, default=Path("municipality_sources.toml")
+    )
+    parser.add_argument("--raw-dir", type=Path, default=Path("data/raw/municipality"))
+    parser.add_argument("--periods", nargs="+", metavar="YYYY-MM")
+    if include_database:
+        parser.add_argument(
+            "--database", type=Path, default=Path("data/processed/hotel_market.sqlite3")
+        )
+
+
+def _municipality_periods(values: list[str] | None) -> set[tuple[int, int]] | None:
+    if not values:
+        return None
+    periods = set()
+    for value in values:
+        try:
+            year_text, month_text = value.split("-", 1)
+            year, month = int(year_text), int(month_text)
+        except ValueError as exc:
+            raise ValueError(f"invalid municipality period: {value}") from exc
+        if len(year_text) != 4 or not 1 <= month <= 12:
+            raise ValueError(f"invalid municipality period: {value}")
+        periods.add((year, month))
+    return periods
 
 
 def _table_summaries(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -112,6 +182,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "monitor":
             config = load_analysis_config(args.analysis_config, target_year=args.target_year, base_year=args.base_year)
             result = generate_reports(args.database, args.report_dir, config)
+        elif args.command == "municipality-fetch":
+            periods = _municipality_periods(args.periods)
+            result = fetch_municipality_sources(
+                load_municipality_sources(args.sources, periods), args.raw_dir
+            )
+        elif args.command in {"municipality-build-db", "municipality-pipeline"}:
+            result = run_municipality_pipeline(
+                args.sources,
+                args.raw_dir,
+                args.database,
+                _municipality_periods(args.periods),
+                fetch=args.command == "municipality-pipeline",
+                progress=lambda message: print(f"[hotel-etl] {message}", file=sys.stderr),
+            )
+            if args.command == "municipality-pipeline" and not args.skip_report:
+                print("[hotel-etl] 市区町村レポートを生成しています", file=sys.stderr)
+                result["analysis"] = generate_municipality_reports(
+                    args.database, args.report_dir
+                )
+        elif args.command == "municipality-report":
+            result = generate_municipality_reports(args.database, args.report_dir)
         else:
             client = EstatClient(app_id=get_estat_app_id())
             if args.command == "search-tables":
@@ -130,7 +221,22 @@ def main(argv: Sequence[str] | None = None) -> int:
                     stats_data_id=args.stats_data_id,
                     limit=args.limit,
                 )
-    except (ConfigurationError, EstatApiError, FetchError, SourceConfigurationError, WorkbookFormatError, DataQualityError, AnalysisError, OSError, KeyError, ValueError, sqlite3.Error) as exc:
+    except (
+        ConfigurationError,
+        EstatApiError,
+        FetchError,
+        SourceConfigurationError,
+        MunicipalitySourceConfigurationError,
+        WorkbookFormatError,
+        MunicipalityWorkbookFormatError,
+        DataQualityError,
+        MunicipalityDataQualityError,
+        AnalysisError,
+        OSError,
+        KeyError,
+        ValueError,
+        sqlite3.Error,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

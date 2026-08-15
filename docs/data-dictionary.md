@@ -24,7 +24,7 @@ Phase 1は観光庁「宿泊旅行統計調査」の年確定値Excelを、都�
 | `total_guests` | INTEGER NULL | 延べ宿泊者数（人泊） |
 | `japanese_guests` | INTEGER NULL | `total_guests - foreign_guests`。いずれか欠測ならNULL |
 | `foreign_guests` | INTEGER NULL | 外国人延べ宿泊者数（人泊） |
-| `occupancy_rate` | REAL NULL | 客室稼働率（%） |
+| `occupancy_rate` | REAL NULL | 客室稼働率（%）。公式表の100%超も補正せず保持し、0～200%を取込可能範囲とする |
 | `source_file_id` | INTEGER | `source_files`への外部キー |
 
 ## `monthly_supply`
@@ -49,6 +49,42 @@ Phase 1は観光庁「宿泊旅行統計調査」の年確定値Excelを、都�
 ## 欠測値
 
 Excelの空欄、`-`、`…`、`...`、`X`、`*`はゼロへ変換せずSQLiteの`NULL`とする。原表で観測されないことと、実績がゼロであることを区別するためである。
+
+## 市区町村・第2次速報
+
+### `municipality_source_files`
+
+| 列 | 型 | 内容 |
+|---|---|---|
+| `year`, `month`, `release_type` | INTEGER, INTEGER, TEXT | 調査年月と`second_preliminary` |
+| `stat_inf_id` | TEXT | 公式ファイルのsource ID。通常はe-Statの`statInfId`、観光庁例外ソースは`mlit:<content ID>` |
+| `url`, `filename` | TEXT | `fileKind=0`の原Excel URLと保存名 |
+| `published_on`, `retrieved_at` | TEXT | 公表日と取得日時 |
+| `sha256`, `size_bytes` | TEXT, INTEGER | ファイル同一性確認情報 |
+
+### `municipalities`
+
+| 列 | 型 | 内容 |
+|---|---|---|
+| `id` | INTEGER | 内部主キー |
+| `prefecture_code`, `prefecture_name` | INTEGER, TEXT | Excel所在地名から分離した都道府県 |
+| `municipality_name` | TEXT | 都道府県名を除いた市区町村名。郡名を含む場合がある |
+
+### `monthly_municipality_market`
+
+| 列 | 型 | 内容 |
+|---|---|---|
+| `year`, `month` | INTEGER | 調査年月 |
+| `municipality_id` | INTEGER | `municipalities`への外部キー |
+| `room_size_class` | TEXT | `total`、`1_to_9`、`10_to_19`、`20_plus` |
+| `release_type` | TEXT | `second_preliminary` |
+| `total_guests`, `japanese_guests`, `foreign_guests` | INTEGER NULL | 延べ宿泊者数。日本人数は総数－外国人数 |
+| `occupied_rooms` | REAL NULL | 利用客室数。公式表に小数値があるため丸めず保持する |
+| `occupancy_rate` | REAL NULL | 客室稼働率（%） |
+| `population_facilities`, `responding_facilities` | INTEGER NULL | 母集団施設数と回収施設数 |
+| `source_file_id` | INTEGER | `municipality_source_files`への外部キー |
+
+市区町村表は回収10施設以上の区分のみ表章される実数であり、未回収分を推定した都道府県値とは集計基準が異なる。市区町村値を合計して都道府県値を作成しない。
 
 ## 分析用View
 
