@@ -13,28 +13,17 @@ from pathlib import Path
 
 from .analysis import AnalysisConfig, analyze_database, config_as_dict
 
-
 CSV_FIELDS = [
     "prefecture_code", "prefecture_name", "target_year", "target_month", "base_year", "release_type",
-    "total_guests", "average_occupancy_rate", "average_facilities", "foreign_share_pct",
+    "total_guests", "average_occupancy_rate", "average_facilities", "facilities",
+    "foreign_share_pct",
     "demand_vs_base_pct", "occupancy_vs_base_pp", "foreign_vs_base_pct",
     "demand_ltm_yoy_pct", "foreign_ltm_yoy_pct", "japanese_ltm_yoy_pct",
-    "occupancy_ltm_yoy_pp", "facility_ltm_yoy_pct", "foreign_share_yoy_pp",
+    "occupancy_ltm_yoy_pp", "facility_ltm_yoy_pct", "facility_yoy_pct",
+    "foreign_share_yoy_pp",
     "recent_demand_yoy_pct", "recent_occupancy_yoy_pp", "monthly_cv", "peak_month_share_pct",
-    "seasonal_occupancy_cv", "seasonal_occupancy_cv_percentile",
-    "seasonal_occupancy_cv_relative", "occupancy_seasonal_range_pp",
+    "seasonal_occupancy_cv", "occupancy_seasonal_range_pp",
     "top3_demand_share_pct",
-    "top3_demand_share_pct_percentile", "top3_demand_share_pct_relative",
-    "demand_ltm_yoy_pct_percentile", "demand_ltm_yoy_pct_relative",
-    "foreign_share_pct_percentile", "foreign_share_pct_relative",
-    "facility_ltm_yoy_pct_percentile", "facility_ltm_yoy_pct_relative",
-    "recent_demand_yoy_pct_percentile", "recent_demand_yoy_pct_relative",
-    "recovery_direction", "demand_mix_direction", "momentum_direction",
-    "supply_demand_direction", "supply_demand_pattern", "market_state",
-    "market_characteristics", "recovery_signals", "demand_mix_signals",
-    "momentum_signals", "supply_demand_signals", "seasonality_signals",
-    "is_watch", "signals", "watch_reasons",
-    "observed_fact", "interpretation", "next_action", "data_quality_note",
 ]
 
 
@@ -62,19 +51,7 @@ def _display_date(value: str) -> str:
 
 
 def _serializable(row: dict) -> dict:
-    result = {key: row.get(key) for key in CSV_FIELDS}
-    for field in (
-        "market_characteristics",
-        "recovery_signals",
-        "demand_mix_signals",
-        "momentum_signals",
-        "supply_demand_signals",
-        "seasonality_signals",
-        "signals",
-        "watch_reasons",
-    ):
-        result[field] = " / ".join(row[field])
-    return result
+    return {key: row.get(key) for key in CSV_FIELDS}
 
 
 def _write_csv(path: Path, rows: list[dict]) -> None:
@@ -96,27 +73,32 @@ def _fmt(value: object, suffix: str = "") -> str:
     return html.escape(str(value))
 
 
-def _document(title: str, body: str) -> str:
+def _document(title: str, body: str, *, show_review: bool = True) -> str:
+    review = (
+        '<div class="review">レビュー前・暫定版：LTM／直近3か月／全国相対評価の'
+        '分析ロジックと生成結果は未レビューです。</div>'
+        if show_review
+        else ""
+    )
     return f"""<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(title)}</title><style>
-:root{{--ink:#172033;--muted:#637083;--line:#dce2ea;--paper:#fff;--bg:#f3f6f9;--watch:#a73b27;--accent:#155e75}}
+:root{{--ink:#172033;--muted:#637083;--line:#dce2ea;--paper:#fff;--bg:#f3f6f9;--accent:#155e75}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}}
 main{{max-width:1180px;margin:auto;padding:32px 20px 64px}}h1{{font-size:2rem;margin:.2rem 0}}h2{{margin-top:2rem}}.sub{{color:var(--muted)}}
 .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:22px 0}}.card,.panel{{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px}}
-.metric{{font-size:1.45rem;font-weight:700}}table{{width:100%;border-collapse:collapse;background:var(--paper);font-size:.9rem}}th,td{{padding:9px;border:1px solid var(--line);text-align:left}}th{{background:#eaf0f5}}tr.watch td:first-child{{border-left:4px solid var(--watch)}}
+.metric{{font-size:1.45rem;font-weight:700}}table{{width:100%;border-collapse:collapse;background:var(--paper);font-size:.9rem}}th,td{{padding:9px;border:1px solid var(--line);text-align:left}}th{{background:#eaf0f5}}
 a{{color:#075985}}.scroll{{overflow-x:auto}}
 .review{{border:1px solid #d97706;background:#fff7ed;color:#9a3412;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-weight:600}}
 .axis{{margin-top:24px}}.axis h2{{margin:0}}.question{{color:var(--muted);margin:.25rem 0 1rem}}
 .grid-2{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}.rank{{font-weight:700;color:var(--muted);width:2rem}}.chart{{width:100%;height:auto;display:block}}.chart-note{{font-size:.82rem;color:var(--muted)}}
 .market-kpis{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}}.metric-detail{{font-size:.82rem;color:var(--muted);margin-top:6px}}.card-note{{font-size:.72rem;color:var(--muted);margin-top:8px}}
 .demand-charts{{display:grid;grid-template-columns:1fr;gap:24px}}.chart-box{{min-width:0}}.chart-box h3{{margin:.1rem 0 .75rem;font-size:1rem}}
-.breadth{{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}}.status{{background:#eef6f8;border:1px solid #bae6ed;border-radius:999px;padding:6px 11px;font-size:.84rem;color:#164e63}}
-.numeric{{display:block;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}}.range-value{{font-weight:700;color:#9a3412}}
-.table-tools{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}}.table-search{{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.trend{{display:inline-block;border-radius:999px;padding:2px 8px;font-weight:700}}.trend.up{{background:#dff7ed;color:#166534}}.trend.down{{background:#fee2e2;color:#991b1b}}.trend.flat{{background:#eef2f7;color:#475569}}
+.numeric{{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}}.range-value{{font-weight:700;color:#9a3412}}.month-pair{{text-align:center;white-space:nowrap}}
+.table-tools{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}}.table-search{{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:right;cursor:pointer}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}.th-seasonality{{background:#f0fdf4;border-top:3px solid #16a34a}}.th-diff,.td-diff{{background:#f8fafc;border-left:1px dashed #94a3b8}}.change-positive{{color:#047857;font-weight:700}}.change-negative{{color:#b45309;font-weight:700}}.change-flat{{color:#64748b;font-weight:700}}
 @media(min-width:768px){{.market-kpis{{grid-template-columns:repeat(4,minmax(0,1fr))}}.demand-charts{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}@media(max-width:760px){{.grid-2{{grid-template-columns:1fr}}}}
 @media print{{body{{background:#fff}}main{{max-width:none}}.panel,.card{{break-inside:avoid}}}}
-</style></head><body><main><div class="review">レビュー前・暫定版：LTM／直近3か月／全国相対評価の分析ロジックと生成結果は未レビューです。</div>{body}</main></body></html>"""
+</style></head><body><main>{review}{body}</main></body></html>"""
 
 
 def _load_time_series(database: Path, config: AnalysisConfig) -> tuple[dict[int, list[float]], dict[int, dict[int, list[dict]]]]:
@@ -266,8 +248,68 @@ def _annual_demand_structure_chart(history: dict[int, list[dict]], recent_years:
     return f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" aria-label="年次需要構造と外国人比率">{"".join(parts)}</svg>'
 
 
+def _annual_facilities_chart(history: dict[int, list[dict]], years: list[int]) -> str:
+    """Render December surveyed-facility counts for the requested years."""
+    annual = []
+    for year in years:
+        december = next((item for item in history[year] if item["month"] == 12), None)
+        if december is None:
+            raise ValueError(f"facility chart requires December data for {year}")
+        annual.append((year, int(december["facilities"])))
+
+    width, height = 760, 360
+    left, right, top, bottom = 72, 24, 48, 58
+    plot_width, plot_height = width - left - right, height - top - bottom
+    maximum = max(value for _, value in annual) * 1.18 or 1
+
+    def x(index: int) -> float:
+        return left + (index + 0.5) / len(annual) * plot_width
+
+    def y(value: float) -> float:
+        return top + (1 - value / maximum) * plot_height
+
+    parts = [
+        (
+            f'<rect x="{left}" y="{top}" width="{plot_width}" height="{plot_height}" '
+            'fill="#f8fafc" stroke="#dce2ea"/>'
+        )
+    ]
+    for step in range(5):
+        value = maximum * step / 4
+        py = y(value)
+        parts.append(
+            f'<line x1="{left}" y1="{py:.1f}" x2="{width-right}" y2="{py:.1f}" '
+            'stroke="#e2e8f0"/>'
+        )
+        parts.append(
+            f'<text x="{left-8}" y="{py+4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="#475569">{value:,.0f}</text>'
+        )
+    bar_width = min(92, plot_width / len(annual) * 0.5)
+    for index, (year, value) in enumerate(annual):
+        px, py = x(index), y(value)
+        base = top + plot_height
+        parts.append(
+            f'<rect x="{px-bar_width/2:.1f}" y="{py:.1f}" width="{bar_width:.1f}" '
+            f'height="{base-py:.1f}" fill="#0f766e"><title>{year}年12月 {value:,}施設</title></rect>'
+        )
+        parts.append(
+            f'<text x="{px:.1f}" y="{py-9:.1f}" text-anchor="middle" font-size="12" '
+            f'font-weight="700" fill="#172033">{value:,}施設</text>'
+        )
+        parts.append(
+            f'<text x="{px:.1f}" y="{height-22}" text-anchor="middle" font-size="12" '
+            f'fill="#475569">{year}年</text>'
+        )
+    return (
+        f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" '
+        f'aria-label="調査対象施設数の年次推移">{"".join(parts)}</svg>'
+    )
+
+
 def _market_sheet(row: dict, published_on: str, history: dict[int, list[dict]], config: AnalysisConfig) -> str:
     recent_years = [config.target_year - 2, config.target_year - 1, config.target_year]
+    comparison_years = [config.base_year, *recent_years]
     occupancy = {year: [item["occupancy_rate"] for item in history[year]] for year in [config.base_year, *recent_years]}
     current_facilities = int(history[config.target_year][config.target_month - 1]["facilities"])
     previous_facilities = int(history[config.target_year - 1][config.target_month - 1]["facilities"])
@@ -283,74 +325,79 @@ def _market_sheet(row: dict, published_on: str, history: dict[int, list[dict]], 
     body = f"""<a href="../index.html">← 全国ダッシュボード</a><h1>{html.escape(row['prefecture_name'])} Market Sheet</h1>
 <p class="sub">{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p>
 <div class="market-kpis">{card_html}</div>
-<section class="panel axis"><h2>延べ宿泊者数</h2><p class="question">直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化を確認します。</p>
+<section class="panel axis"><h2>1. 客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の{config.base_year}年と比較します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year)}</section>
+<section class="panel axis"><h2>2. 延べ宿泊者数（需要）</h2><p class="question">直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化を確認します。</p>
 <div class="demand-charts">
 <div class="chart-box"><h3>総延べ宿泊者数・月次推移（直近3年）</h3>{_monthly_demand_chart(history, recent_years)}</div>
-<div class="chart-box"><h3>年次需要構造と外国人比率（{recent_years[0]}–{recent_years[-1]}年）</h3>{_annual_demand_structure_chart(history, recent_years)}</div>
+<div class="chart-box"><h3>年次需要構造と外国人比率（直近3年）</h3>{_annual_demand_structure_chart(history, recent_years)}</div>
 </div></section>
-<section class="panel axis"><h2>客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の{config.base_year}年と比較します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year)}</section>
-<section class="panel axis"><h2>利用上の注意</h2><p>都道府県単位のマクロ統計であり、個別ホテルのADR、RevPAR、GOP、客室数、収益性や担保価値を直接示すものではありません。</p></section>"""
-    return _document(f"{row['prefecture_name']} Market Sheet", body)
+<section class="panel axis"><h2>3. 宿泊施設数（供給）</h2><p class="question">調査対象施設数の年次推移（{config.base_year}年・直近3年）を確認し、供給環境の変化を把握します。</p>{_annual_facilities_chart(history, comparison_years)}<p class="chart-note">各年12月時点。客室数ではなく、調査対象の施設数です。</p></section>
+<section class="panel axis"><h2>4. 利用上の注意</h2><p>都道府県単位のマクロ統計であり、個別ホテルのADR、RevPAR、GOP、客室数、収益性や担保価値を直接示すものではありません。</p></section>"""
+    return _document(f"{row['prefecture_name']} Market Sheet", body, show_review=False)
 
 
 def _prefecture_cell(row: dict) -> str:
     return f'<a href="market-sheets/{row["prefecture_code"]:02}.html">{html.escape(row["prefecture_name"])}</a>'
 
 
-def _table(headers: list[str], body_rows: list[list[str]]) -> str:
-    header = "".join(f"<th>{html.escape(value)}</th>" for value in headers)
-    body = "".join("<tr>" + "".join(f"<td>{value}</td>" for value in row) + "</tr>" for row in body_rows)
-    return f'<div class="scroll"><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>'
-
-
-def _ranking_table(headers: list[str], rows: list[list[str]]) -> str:
-    if not rows:
-        return '<p class="sub">該当市場なし</p>'
-    ranked = [[f'<span class="rank">{index}</span>', *row] for index, row in enumerate(rows, 1)]
-    return _table(["順位", *headers], ranked)
-
-
-def _occupancy_badge(value: float) -> str:
-    css_class = "up" if value > 1 else "down" if value < -1 else "flat"
-    return f'<span class="trend {css_class}">{value:+.1f}pt</span>'
-
-
 def _prefecture_table(rows: list[dict]) -> str:
-    headers = ["都道府県", "LTM平均客室稼働率", "客室稼働率前年差", "外国人延べ宿泊者比率", "宿泊施設数（前年比）"]
+    def change_class(value: float) -> str:
+        displayed_value = round(value, 1)
+        if displayed_value > 0:
+            return "change-positive"
+        if displayed_value < 0:
+            return "change-negative"
+        return "change-flat"
+
     body = []
     for row in rows:
+        occupancy = row["monthly_occupancy_rate"]
+        labels = row["monthly_labels"]
+        peak_month = int(labels[occupancy.index(max(occupancy))].split("-")[1])
+        bottom_month = int(labels[occupancy.index(min(occupancy))].split("-")[1])
         cells = [
-            (_prefecture_cell(row), row["prefecture_name"]),
-            (_fmt(row["average_occupancy_rate"], "%"), row["average_occupancy_rate"]),
-            (_occupancy_badge(row["occupancy_ltm_yoy_pp"]), row["occupancy_ltm_yoy_pp"]),
-            (_fmt(row["foreign_share_pct"], "%"), row["foreign_share_pct"]),
-            (f'{row["facilities"]:,.0f}施設 ({row["facility_yoy_pct"]:+.1f}%)', row["facilities"]),
+            (_prefecture_cell(row), row["prefecture_name"], ""),
+            (f'{row["average_occupancy_rate"]:.1f}%', row["average_occupancy_rate"], "numeric"),
+            (f'{row["occupancy_ltm_yoy_pp"]:+.1f}pt', row["occupancy_ltm_yoy_pp"], f'numeric td-diff {change_class(row["occupancy_ltm_yoy_pp"])}'),
+            (f'{row["facilities"]:,.0f}施設', row["facilities"], "numeric"),
+            (f'{row["facility_yoy_pct"]:+.1f}%', row["facility_yoy_pct"], f'numeric td-diff {change_class(row["facility_yoy_pct"])}'),
+            (f'{row["foreign_share_pct"]:.1f}%', row["foreign_share_pct"], "numeric"),
+            (f'{row["foreign_ltm_yoy_pct"]:+.1f}%', row["foreign_ltm_yoy_pct"], f'numeric td-diff {change_class(row["foreign_ltm_yoy_pct"])}'),
+            (f'{row["seasonal_occupancy_cv"]:.3f}', row["seasonal_occupancy_cv"], "numeric"),
+            (f'<span class="range-value">{row["occupancy_seasonal_range_pp"]:.1f}pt</span>', row["occupancy_seasonal_range_pp"], "numeric"),
+            (f"{peak_month}月 / {bottom_month}月", f"{peak_month:02d}-{bottom_month:02d}", "month-pair"),
         ]
-        body.append("<tr>" + "".join(f'<td data-sort="{sort_value}">{display}</td>' for display, sort_value in cells) + "</tr>")
-    header = "".join(
-        f'<th class="sortable"><button type="button" data-column="{index}" aria-label="{html.escape(label)}で並べ替え">{html.escape(label)}</button></th>'
-        for index, label in enumerate(headers)
+        body.append(
+            "<tr>"
+            + "".join(
+                f'<td class="{css_class}" data-sort="{sort_value}">{display}</td>'
+                for display, sort_value, css_class in cells
+            )
+            + "</tr>"
+        )
+    second_row = [
+        (1, "LTM平均稼働率", ""),
+        (2, "稼働率 前年差", "th-diff"),
+        (3, "宿泊施設数", ""),
+        (4, "施設数 前年比", "th-diff"),
+        (5, "外国人比率", ""),
+        (6, "外国人客数 前年比", "th-diff"),
+        (7, "Seasonal CV", ""),
+        (8, "繁閑レンジ", ""),
+        (9, "ピーク月 / ボトム月", ""),
+    ]
+    detail_headers = "".join(
+        f'<th class="sortable numeric {css_class}"><button type="button" data-column="{index}" aria-label="{html.escape(label)}で並べ替え">{html.escape(label)}</button></th>'
+        for index, label, css_class in second_row
     )
+    group_headers = '''<tr><th rowspan="2">都道府県</th><th colspan="4" class="th-group th-supply-demand">需給</th><th colspan="2" class="th-group th-inbound">インバウンド</th><th colspan="3" class="th-group th-seasonality">季節変動</th></tr>'''
     return f'''<div class="table-tools"><input id="prefecture-search" class="table-search" type="search" placeholder="都道府県名で検索" aria-label="都道府県名で検索"><span id="prefecture-count" class="sub">{len(rows)}県</span></div>
-<div class="scroll"><table id="prefecture-table"><thead><tr>{header}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'''
-
-
-def _breadth(values: list[float], threshold: float = 1.0) -> tuple[int, int, int]:
-    return (
-        sum(value > threshold for value in values),
-        sum(-threshold <= value <= threshold for value in values),
-        sum(value < -threshold for value in values),
-    )
+<div class="scroll"><table id="prefecture-table"><thead>{group_headers}<tr>{detail_headers}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'''
 
 
 def _index_html(
     rows: list[dict], config: AnalysisConfig, published_on: str, national: dict[int, list[float]]
 ) -> str:
-    foreign_share_top = sorted(rows, key=lambda row: row["foreign_share_pct"], reverse=True)[:10]
-    foreign_growth_top = sorted(rows, key=lambda row: row["foreign_ltm_yoy_pct"], reverse=True)[:10]
-    seasonality_top = sorted(rows, key=lambda row: row["seasonal_occupancy_cv"], reverse=True)[:10]
-    yoy_breadth = _breadth([row["occupancy_ltm_yoy_pp"] for row in rows])
-    base_breadth = _breadth([row["occupancy_vs_base_pp"] for row in rows])
     target_average = sum(national[config.target_year]) / 12
     previous_average = sum(national[config.target_year - 1]) / 12
     base_average = sum(national[config.base_year]) / 12
@@ -359,51 +406,14 @@ def _index_html(
         for year in [config.base_year, config.target_year - 2, config.target_year - 1, config.target_year]
     }
     prefecture_table = _prefecture_table(rows)
-    inbound_share_table = _ranking_table(
-        ["都道府県", "外国人比率"],
-        [[_prefecture_cell(row), f'<span class="numeric">{row["foreign_share_pct"]:.1f}%</span>'] for row in foreign_share_top],
-    )
-    inbound_growth_table = _ranking_table(
-        ["都道府県", "外国人LTM YoY", "外国人比率"],
-        [
-            [
-                _prefecture_cell(row),
-                f'<span class="numeric">{row["foreign_ltm_yoy_pct"]:+.1f}%</span>',
-                f'<span class="numeric">{row["foreign_share_pct"]:.1f}%</span>',
-            ]
-            for row in foreign_growth_top
-        ],
-    )
-    seasonality_rows = []
-    for row in seasonality_top:
-        occupancy = row["monthly_occupancy_rate"]
-        labels = row["monthly_labels"]
-        peak_index = occupancy.index(max(occupancy))
-        bottom_index = occupancy.index(min(occupancy))
-        peak_month = int(labels[peak_index].split("-")[1])
-        bottom_month = int(labels[bottom_index].split("-")[1])
-        seasonality_rows.append(
-            [
-                _prefecture_cell(row),
-                f'{row["seasonal_occupancy_cv"]:.3f}',
-                f'<span class="range-value">{row["occupancy_seasonal_range_pp"]:.1f}pt</span>',
-                f"{peak_month}月 / {bottom_month}月",
-            ]
-        )
-    breadth_badges = f'''<div class="breadth" aria-label="市場回復の広がり">
-<span class="status">稼働率前年比：上昇 {yoy_breadth[0]}県 / 横ばい {yoy_breadth[1]}県 / 低下 {yoy_breadth[2]}県</span>
-<span class="status">{config.base_year}年比：上昇 {base_breadth[0]}県 / 横ばい {base_breadth[1]}県 / 低下 {base_breadth[2]}県</span>
-</div>'''
     body = f"""<h1>全国 Hotel Market Monitor</h1><p class="sub">{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村 Hotel Market Monitor →</a></p>
-<section class="panel axis"><h2>1. 全国のホテル市況</h2><p class="question">観光庁が公表する全国客室稼働率です。47都道府県の単純平均ではありません。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year)}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 全国平均稼働率</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div>{breadth_badges}<p class="chart-note">平均値は観光庁の各月全国客室稼働率12値の単純平均です。広がりは都道府県別LTM平均差が+1.0pt超を上昇、±1.0pt以内を横ばい、-1.0pt未満を低下とします。</p></section>
-<section class="axis"><h2>2. インバウンド</h2><div class="grid-2"><div class="panel"><h3>外国人宿泊者比率 TOP10</h3>{inbound_share_table}</div><div class="panel"><h3>外国人宿泊者数成長率 TOP10</h3>{inbound_growth_table}</div></div></section>
-<section class="panel axis"><h2>3. 季節変動ランキング</h2><p class="question">季節性の良否判定ではなく、年間CFの繁閑差（ボトムリスク）を把握するための市場特性です。<br><small>※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）</small></p>{_ranking_table(["都道府県", "Seasonal CV（変動係数）", "稼働率の繁閑レンジ", "ピーク月 / ボトム月"], seasonality_rows)}</section>
-<section class="panel axis"><h2>4. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p>{prefecture_table}</section>
+<section class="panel axis"><h2>1. 全国のホテル市況</h2><p class="question">観光庁が公表する全国客室稼働率です。47都道府県の単純平均ではありません。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year)}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 全国平均稼働率</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
+<section class="panel axis"><h2>2. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p>{prefecture_table}<p class="chart-note">※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）<br>※ 繁閑レンジ ＝ 年間における月次客室稼働率の最高値（ピーク月）と最低値（ボトム月）のポイント差（pt）</p></section>
 <section class="panel axis"><h2>利用上の注意</h2><p>本レポートは担保物件所在地のマクロ市況を確認する一次資料です。個別ホテルのADR、RevPAR、GOP、収益性や担保価値を直接示すものではありません。</p></section>
 <script>
 (()=>{{const table=document.querySelector('#prefecture-table');if(!table)return;const body=table.tBodies[0],search=document.querySelector('#prefecture-search'),count=document.querySelector('#prefecture-count');let direction=1,column=-1;const visibleRows=()=>[...body.rows].filter(row=>!row.hidden);const update=()=>{{const query=search.value.trim().toLocaleLowerCase('ja');[...body.rows].forEach(row=>{{row.hidden=!row.cells[0].textContent.toLocaleLowerCase('ja').includes(query)}});count.textContent=`${{visibleRows().length}}県`;}};search.addEventListener('input',update);table.querySelectorAll('button[data-column]').forEach(button=>button.addEventListener('click',()=>{{const next=Number(button.dataset.column);direction=column===next?-direction:1;column=next;table.querySelectorAll('button[data-column]').forEach(item=>item.removeAttribute('data-direction'));button.dataset.direction=direction===1?'asc':'desc';const rows=[...body.rows];rows.sort((a,b)=>{{const av=a.cells[column].dataset.sort,bv=b.cells[column].dataset.sort,an=Number(av),bn=Number(bv);const result=Number.isNaN(an)||Number.isNaN(bn)?av.localeCompare(bv,'ja'):an-bn;return result*direction;}});rows.forEach(row=>body.appendChild(row));}}));}})();
 </script>"""
-    return _document("全国 Hotel Market Monitor", body)
+    return _document("全国 Hotel Market Monitor", body, show_review=False)
 
 
 def generate_reports(database: Path, output_dir: Path, config: AnalysisConfig) -> dict:
@@ -414,7 +424,6 @@ def generate_reports(database: Path, output_dir: Path, config: AnalysisConfig) -
     sheets.mkdir(exist_ok=True)
     published_on = _source_published_on(database, config)
     _write_csv(output_dir / "prefecture-market.csv", rows)
-    (output_dir / "watchlist.csv").unlink(missing_ok=True)
     (output_dir / "index.html").write_text(
         _index_html(rows, config, published_on, national), encoding="utf-8"
     )

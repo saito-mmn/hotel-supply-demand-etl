@@ -1,25 +1,24 @@
 # Hotel Supply & Demand ETL
 
 > [!IMPORTANT]
-> Google Colab上の旧分析を、ホテル不動産の担保評価・与信管理を支援する宿泊市場モニタリング基盤へ再構築しています。年確定値による全国・都道府県マクロ分析と、月次第2次速報による市区町村ローカル市場分析を、同じリポジトリ内の独立したデータパイプラインとして扱います。
-
-> [!WARNING]
-> 現在の分析・parser・レポートコードはレビュー前です。指標定義、方向判定、相対評価、生成結果は暫定版であり、独立したコードレビューと分析妥当性レビューが完了するまで確定仕様として扱いません。
+> 年確定値による全国・都道府県マクロ分析と、月次第2次速報による市区町村ローカル市場分析を、同じリポジトリ内の独立したデータパイプラインとして扱います。
 
 ## このプロジェクトで解決する業務課題
 
-ホテルの担保評価では、全国や都道府県の市場環境だけでなく、担保物件が所在する市区町村の宿泊需要・客室稼働率を継続的に確認する必要があります。特に市区町村値は、e-Statで月ごとに配布される第2次速報Excelを個別に開き、複数の参考表を横断して集計する必要があり、実務上の負担が大きい作業です。
+ホテルの担保評価では、全国や都道府県の市場環境だけでなく、担保物件が所在する市区町村の宿泊需要・客室稼働率を継続的に確認する必要があります。
+特に市区町村値は、e-Statで月ごとに配布される第2次速報Excelを個別に開き、複数の参考表を横断して集計する必要があり、実務上の負担が大きい作業です。
 
 本プロジェクトは、次の二つの粒度を分離して自動化します。
 
-| ドメイン | 入力 | 粒度・更新頻度 | 主な用途 | 状態 |
-|---|---|---|---|---|
-| `prefecture` | 観光庁の年確定値Excel | 全国・47都道府県／年次 | ホテル市場の地合いと都道府県マクロ環境の把握 | 暫定レポート実装済み・レビュー前 |
-| `municipality` | e-Statの第2次速報Excel | 主な市区町村／月次 | 担保所在地の需要・稼働率時系列の確認 | ETL・暫定レポート実装済み、レビュー前 |
+| ドメイン | 入力 | 粒度・更新頻度 | 主な用途 |
+|---|---|---|---|
+| `prefecture` | 観光庁の年確定値Excel | 全国・47都道府県／年次 | ホテル市場の地合いと都道府県マクロ環境の把握 |
+| `municipality` | e-Statの第2次速報Excel | 主な市区町村／月次 | 担保所在地の需要・稼働率時系列の確認 |
 
-市区町村値は全市区町村の完全な統計ではありません。公式Excelに掲載される「主な市区町村」のうち、市区町村別・客室区分別に10施設以上の回収があった区分の実数です。未回収分を推定した都道府県値とは集計基準が異なるため、市区町村値の合計から都道府県値を再構成しません。
+市区町村値は全市区町村の完全な統計ではありません。
+公式Excelに掲載される「主な市区町村」のうち、市区町村別・客室区分別に10施設以上の回収があった区分の実数です。未回収分を推定した都道府県値とは集計基準が異なるため、市区町村値の合計から都道府県値を再構成しません。
 
-## v2 再構築方針
+## 方針
 
 観光庁「宿泊旅行統計調査」はe-Statと観光庁から公式Excelが配布され、一部の旧系列はe-Stat APIからも取得できます。継続利用には、年度別の提供形式、速報値と確定値、訂正・差し替え、欠損、データ品質を管理する必要があります。
 
@@ -43,30 +42,14 @@ API提供範囲を実測した結果、2019・2024・2025年の年確定値は�
 
 ### 技術的な取り組み
 
-v2では、次の機能を段階的に実装します。
-
-- `sources.toml`に明示した公式URLからExcelを取得する処理
-- URL、公表日、取得日時、SHA-256による来歴管理と、同一ファイルの再取得を避ける冪等性
-- 2019～2025年の年確定値 `.xlsx` を共通スキーマへ正規化する処理
-- e-Stat APIの提供範囲・統計表・分類コードを調査するAPIクライアント
-- API提供状況が変わった場合の公式Excelとの標本照合
-- アプリケーションIDを環境変数・CI Secretsで扱う認証情報管理
-- 需要、供給、出典、公表版を分離したSQLiteデータモデル
-- 速報値・確定値・訂正値を上書きせず保持する履歴管理
-- 都道府県、年月、重複、欠損、数値範囲を確認するデータ品質検証
-- stagingとトランザクションを用いた安全かつ冪等なDB更新
-- fetch → normalize → validate → load → report を実行するCLI
-- fixtureを用いたparserテスト、回帰テスト、統合テスト
-- テストによる取得・変換・品質検証の自動確認
-- SQL viewを介した分析用月次・年次データの提供
-- 公式全国客室稼働率、インライン市場breadth、インバウンド・季節変動ランキングの生成
-- 施設数を含む47都道府県一覧の検索・数値ソート
-- 需要・客室稼働率の時系列と施設数KPIを示す都道府県別Market Sheetの生成
-- 月次第2次速報を提供元、source ID、調査年月、公表日で固定する市区町村ソース管理
-- 市区町村別の参考第5・6・8・11・12表を市区町村・客室区分単位で結合するparser
-- 市区町村名の正規化、欠測・非表章管理、掲載自治体・客室区分・整合性の品質検証
-- 市区町村マスター、月次ファクト、e-Stat出典を分離したSQLiteロード
-- 市区町村別の需要・外国人需要・客室稼働率を確認するMarket Sheet
+- TOMLで固定した公式Excelの取得と、URL・公表日・取得日時・SHA-256による来歴管理
+- 年度や公表月で構造の異なるExcelを共通の月次レコードへ正規化するparser
+- 都道府県・市区町村・客室規模区分・欠測・値範囲・内訳整合性のデータ品質検証
+- 出典、マスター、都道府県ファクト、市区町村ファクトを分離したSQLiteデータモデル
+- 一時DBの原子的置換と対象月のトランザクション置換による、失敗時に既存データを壊さないDB更新
+- 取得からDB生成・静的HTMLレポートまでの一括実行と、各工程の個別再実行を選べるCLI
+- fixtureを用いたparser・品質検証・SQLiteロード・レポート生成の自動テスト
+- 全国・都道府県・市区町村へドリルダウンする静的HTMLレポート
 
 この再構築を通じて、外部の非構造データを取得・正規化するだけでなく、出典、版、品質、再実行性、下流利用まで考慮した小規模データパイプラインの設計・実装を目指します。
 
@@ -76,7 +59,6 @@ v2では、次の機能を段階的に実装します。
 
 公式ページからのリンク自動発見、速報値の定期取得、GitHub Actionsによる巡回、自動PRは、継続運用の必要性が確認された場合のOptional機能とします。低頻度・少数ファイルのために複雑な収集基盤を先に作らず、ETL本体、品質検証、再現性を優先します。
 
-開発工程、フェーズ、完了条件は [v2ロードマップ](plan_memo/v2-roadmap.md) を参照してください。このロードマップは開発完了後に削除する内部工程資料であり、利用者向け仕様は`docs/`へ残します。
 e-Stat APIの実測結果は [e-Stat API 提供範囲調査](docs/estat-api-audit.md) に記録しています。
 
 ## 現在の状態
@@ -87,7 +69,36 @@ e-Stat APIの実測結果は [e-Stat API 提供範囲調査](docs/estat-api-audi
 
 ### 処理フローとモジュール構成
 
-ドメインは同一リポジトリ内で分離します。既存のルート直下モジュールは稼働中の都道府県パイプラインです。市区町村parserと品質ルールが安定するまでは既存コードを一括移動せず、新機能を`municipality/`へ実装します。重複が実際に確認された取得・manifest・XLSX検証だけを、その後`common/`へ抽出します。
+都道府県と市区町村は、対象粒度とExcel形式は異なりますが、どちらも同じETLフローで処理します。`cli.py`がコマンドを受け付け、各`pipeline.py`が処理順序を制御し、取得・変換・検証・保存の詳細を責務別モジュールへ委譲します。
+
+```text
+ソース設定（*.toml）
+  ↓ sources.py：対象期間・URL・公表日・保存名の検証
+公式Excel
+  ↓ fetcher.py：取得・XLSX形式検証・manifest・SHA-256記録
+Rawデータ
+  ↓ parser.py：Excel固有形式から月次レコードへ正規化
+共通レコード（models.py）
+  ↓ validation.py：キー・件数・値範囲・内訳整合性の検証
+検証済みレコード
+  ↓ database.py：出典・マスター・月次ファクトをSQLiteへロード
+hotel_market.sqlite3
+  ↓ report.py：一覧とMarket Sheetを生成
+静的HTMLレポート
+```
+
+`pipeline.py`はETLのオーケストレーションまでを担い、レポート生成はCLIがETL成功後に呼び出します。`fetch`、`build-db`、`report`相当のコマンドも分離しているため、取得済みExcelや既存DBから部分的に再実行できます。
+
+#### ドメインごとの差分
+
+| 処理 | 都道府県 | 市区町村 |
+|---|---|---|
+| 設定 | `sources.toml`／対象年 | `municipality_sources.toml`／対象年月・source ID・提供元 |
+| 入力 | 年確定値Excelの第1・4・8表 | 月次第2次速報Excelの参考第5・6・8・11・12表 |
+| 正規化の単位 | 都道府県×年月 | 市区町村×年月×客室規模区分 |
+| 主な品質検証 | 47都道府県、12か月、全国値、重複・値範囲 | 掲載自治体、4客室区分、非表章、需要・施設数内訳 |
+| DB更新 | 一時DBを全件生成し、既存市区町村テーブルを引き継いで原子的に置換 | 対象年月・公表区分の行を1トランザクションで置換 |
+| レポート | 全国一覧＋47都道府県Market Sheet | 市区町村一覧＋掲載自治体Market Sheet |
 
 ```text
 src/hotel_supply_demand/
@@ -113,141 +124,17 @@ src/hotel_supply_demand/
     └── sources.py              月次ソース設定の読込・検証
 ```
 
-最終的には`prefecture/`、`municipality/`、`common/`へ整理しますが、構造変更と市区町村分析ロジックの追加を同時に行わず、レビュー可能な単位で段階的に移行します。
+現在は都道府県モジュールがパッケージ直下、市区町村モジュールが`municipality/`配下にあります。これは現行実装を正確に示すものであり、`prefecture/`や`common/`はまだ存在しません。共通化は、コードレビューで重複と差分を確認した後に独立した構造変更として判断します。
 
-#### 都道府県パイプライン（実装済み・レビュー前）
+### SQLiteデータモデル
 
-CLIがコマンドを受け付け、`pipeline.py`が都道府県ユースケース全体を調整します。`pipeline.py`自身に取得・変換・保存の詳細を集約せず、各処理を責務別のモジュールへ委譲しています。
+都道府県推計値と市区町村実数は、集計基準が異なるため別ファクトとして同じSQLiteに保存します。各ファクトから、URL、公表日、取得日時、SHA-256を持つ出典テーブルへ追跡できます。
 
-```text
-sources.toml
-     │
-     ▼
-  cli.py                         コマンドの受付
-     │
-     ▼
-pipeline.py                      処理順序の制御（オーケストレーション）
-     ├── sources.py              公式データ取得元の設定読込・検証
-     ├── fetcher.py              Excel取得・形式検証・manifest／ハッシュ管理
-     ├── parser.py               年次Excelから共通月次レコードへの変換
-     ├── validation.py           件数・キー・値範囲・整合性の品質検証
-     └── database.py             検証済みレコードからSQLiteを安全に再生成
-             │
-             ▼
- data/processed/hotel_market.sqlite3
-             │
-             ├── analysis.py    年次指標・市場状態・ウォッチ理由の算出
-             └── report.py      CSV・全体HTML・47県マーケットシートの生成
-```
+現行スキーマは8テーブルと4つの分析用Viewからなるため、ER図、複合キー、更新方式、Viewの定義を[SQLiteデータモデル](docs/data-model.md)へ分離しました。列の単位と欠測値の扱いは[データ辞書](docs/data-dictionary.md)を参照してください。
 
-#### 市区町村パイプライン（ETL実装済み）
+## ローカル実行
 
-```text
-municipality_sources.toml
-     │  調査年月・公表日・statInfId・原Excel URLを固定
-     ▼
-municipality/sources.py          設定とe-Stat URLの検証
-     ▼
-municipality/fetcher.py          原Excel取得・manifest・SHA-256管理
-     ▼
-municipality/parser.py           参考第5・6・8・11・12表の結合
-     ▼
-municipality/validation.py       掲載自治体・客室区分・値範囲・内訳整合性の検証
-     ▼
-municipality/database.py         出典・マスター・月次ファクトへ冪等ロード
-     ▼
-municipality/report.py           市区町村一覧と担保所在地の月次Market Sheet
-```
-
-| モジュール | 責務 |
-|---|---|
-| `cli.py` | CLIエントリーポイント。引数を解釈し、パイプラインまたはe-Stat調査機能を呼び出す |
-| `pipeline.py` | 取得、ハッシュ照合、変換、検証、DB生成を所定の順序で接続する |
-| `sources.py` | `sources.toml`を読み込み、対象年、URL、ファイル名を検証する |
-| `fetcher.py` | 公式Excelを一時ファイルへ取得し、XLSX形式とSHA-256を検証してRaw領域へ保存する |
-| `parser.py` | 年度別Excelの第1表・第4表・第8表を都道府県月次値と公式全国客室稼働率へ正規化する |
-| `validation.py` | 47都道府県、12か月、重複、負数、稼働率などの品質ルールを適用する |
-| `database.py` | 需要・供給・出典をSQLiteへ格納し、成功したDBを原子的に置き換える |
-| `models.py` | モジュール間で受け渡す共通月次データモデルを定義する |
-| `analysis.py` | DBからLTM・直近3か月指標と全国相対順位を計算し、方向の組み合わせから市場状態と検知理由を生成する |
-| `report.py` | 全国の市況・breadth・ランキングと、需要・稼働率の県別時系列、施設数KPIを生成する |
-| `estat_client.py` | e-Stat APIの提供範囲とメタデータを調査する外部APIクライアント |
-| `municipality/models.py` | 市区町村月次ETLで受け渡す需要・稼働率・回収施設数の共通モデルを定義する |
-| `municipality/fetcher.py` | e-Stat原Excelを安全に取得し、調査年月・公表日・`statInfId`・SHA-256をmanifestへ記録する |
-| `municipality/parser.py` | 5つの市区町村参考表を所在地・客室区分で結合し、非表章値をNULL相当として正規化する |
-| `municipality/sources.py` | e-Stat原Excelの`statInfId`、調査年月、公表日、URL、保存名を検証する |
-| `municipality/validation.py` | キー重複、4客室区分、非負数、稼働率、需要内訳、施設数内訳を検証する |
-| `municipality/database.py` | e-Stat出典、市区町村マスター、月次ファクトを同一トランザクションで置換する |
-| `municipality/pipeline.py` | 市区町村Excelの取得、ハッシュ照合、変換、検証、月次ロードを接続する |
-
-この分割により、取得元、Excel形式、品質ルール、保存先のいずれかが変わった場合でも、変更範囲を該当モジュールへ限定し、それぞれを独立してテストできます。品質検証が成功するまでDBを更新しないことも、処理順序として明示しています。
-
-### SQLite ER図
-
-出典、都道府県マスター、需要統計、供給統計を分離し、各統計行から取得元の公式Excelを追跡できる構成です。需要・供給テーブルの主キーは、対象年、対象月、都道府県、公表区分の複合キーです。
-
-```mermaid
-erDiagram
-    SOURCE_FILES ||--o{ MONTHLY_DEMAND : provides
-    SOURCE_FILES ||--o{ MONTHLY_SUPPLY : provides
-    SOURCE_FILES ||--o{ NATIONAL_OCCUPANCY : provides
-    PREFECTURES ||--o{ MONTHLY_DEMAND : identifies
-    PREFECTURES ||--o{ MONTHLY_SUPPLY : identifies
-
-    SOURCE_FILES {
-        INTEGER id PK
-        INTEGER year
-        TEXT release_type
-        TEXT url
-        TEXT filename
-        TEXT published_on
-        TEXT retrieved_at
-        TEXT sha256
-        INTEGER size_bytes
-    }
-
-    PREFECTURES {
-        INTEGER code PK
-        TEXT name
-    }
-
-    MONTHLY_DEMAND {
-        INTEGER year PK
-        INTEGER month PK
-        INTEGER prefecture_code PK, FK
-        TEXT release_type PK
-        INTEGER total_guests
-        INTEGER japanese_guests
-        INTEGER foreign_guests
-        REAL occupancy_rate
-        INTEGER source_file_id FK
-    }
-
-    MONTHLY_SUPPLY {
-        INTEGER year PK
-        INTEGER month PK
-        INTEGER prefecture_code PK, FK
-        TEXT release_type PK
-        INTEGER facilities
-        INTEGER source_file_id FK
-    }
-
-    NATIONAL_OCCUPANCY {
-        INTEGER year PK
-        INTEGER month PK
-        TEXT release_type PK
-        REAL occupancy_rate
-        INTEGER source_file_id FK
-    }
-```
-
-各列の定義、単位、欠測値の扱いは[データ辞書](docs/data-dictionary.md)に記載しています。分析用Viewは永続テーブルと分けています。
-
-市区町村側は`municipality_source_files`、`municipalities`、`monthly_municipality_market`へ分離して保存します。市区町村実数と都道府県推計値は別ファクトとして保持し、月次ファクトからsource ID、URL、公表日、取得日時、SHA-256を追跡できます。
-
-都道府県側のDBを再生成する場合も、既存の市区町村3テーブルは新しいDBへ引き継ぎます。これにより、年次確定値の更新と月次第2次速報の更新を独立して実行しても、もう一方のデータを消さずに同じSQLiteを更新できます。
-
-### Phase 1の実行方法
+### 都道府県パイプライン
 
 Python 3.11以上で仮想環境を作成し、`pyproject.toml`からインストールします。Excelパイプラインにe-StatのアプリケーションIDは不要です。
 
@@ -271,19 +158,18 @@ python -m venv .venv
 
 主な成果物は次のとおりです。
 
-- [`reports/latest/index.html`](reports/latest/index.html)：全国客室稼働率、市場breadth、インバウンド・季節変動ランキング、検索・ソート可能な都道府県一覧
-- `reports/latest/market-sheets/`：県別Summary、需要・客室稼働率の月次時系列、施設数KPI
-- `reports/latest/prefecture-market.csv`：全47県の分析結果
+- [`reports/latest/index.html`](reports/latest/index.html)：全国客室稼働率の時系列と、需給・インバウンド・季節変動を統合した都道府県一覧
+- `reports/latest/market-sheets/`：都道府県別KPI、客室稼働率、延べ宿泊者数・需要構造、調査対象施設数の推移を示すMarket Sheet
+- `reports/latest/prefecture-market.csv`：47都道府県の分析結果
+- `reports/latest/report-metadata.json`：データ公表日、件数、分析設定
 
-全国値には47都道府県の単純平均ではなく、観光庁Excel第8表の全国客室稼働率を使用します。都道府県別の平均稼働率は月次12値の単純平均です。指標定義と利用上の制約は[分析方法論](docs/methodology.md)、分析期間は[`analysis.toml`](analysis.toml)に明示しています。
+都道府県別の平均稼働率は月次12値の単純平均です。指標定義と利用上の制約は[分析方法論](docs/methodology.md)、分析期間は[`analysis.toml`](analysis.toml)に明示しています。
 
 特定年だけを検証する場合は、たとえば `--years 2019 2024 2025` を付けます。全テストは次で実行できます。
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
 ```
-
-DBの列定義と欠測値の扱いは[データ辞書](docs/data-dictionary.md)を参照してください。
 
 ### 市区町村パイプラインの実行方法
 

@@ -18,6 +18,17 @@ PREFECTURE = re.compile(r"^\s*(\d{2})(.+?[都道府県])\s*$")
 JAPANESE_DATE = re.compile(r"(平成|令和)(元|\d+)年(\d+)月")
 HEADER_SCAN_ROWS = 15
 
+# Known schema of the official 2019-2025 annual final-value workbooks. The table
+# numbers are stable across the supported files, but are not assumed to be a
+# permanent government API contract. Sheet, period, header, and prefecture
+# validations below intentionally stop the ETL if a future workbook changes.
+FINAL_WORKBOOK_METRICS = {
+    "facilities": ("第1表", "総数"),
+    "total_guests": ("第4表", "延べ宿泊者数"),
+    "foreign_guests": ("第4表", "うち外国人延べ宿泊者数"),
+    "occupancy_rate": ("第8表", "客室稼働率"),
+}
+
 
 def _number(value: object) -> int | float | None:
     if isinstance(value, bool):
@@ -101,13 +112,20 @@ def parse_workbook(path: Path, year: int, release_type: str = "final") -> list[M
     records: list[MonthlyRecord] = []
     try:
         for month in range(1, 13):
-            _validate_period(workbook, f"第1表({month}月)", year, month)
-            _validate_period(workbook, f"第4表({month}月)", year, month)
-            _validate_period(workbook, f"第8表({month}月)", year, month)
-            facilities = _sheet_values(workbook, f"第1表({month}月)", "総数")
-            total = _sheet_values(workbook, f"第4表({month}月)", "延べ宿泊者数")
-            foreign = _sheet_values(workbook, f"第4表({month}月)", "うち外国人延べ宿泊者数")
-            occupancy = _sheet_values(workbook, f"第8表({month}月)", "客室稼働率")
+            sheet_titles = {
+                table: f"{table}({month}月)"
+                for table, _ in FINAL_WORKBOOK_METRICS.values()
+            }
+            for title in sheet_titles.values():
+                _validate_period(workbook, title, year, month)
+            values = {
+                metric: _sheet_values(workbook, sheet_titles[table], header)
+                for metric, (table, header) in FINAL_WORKBOOK_METRICS.items()
+            }
+            facilities = values["facilities"]
+            total = values["total_guests"]
+            foreign = values["foreign_guests"]
+            occupancy = values["occupancy_rate"]
             for code in range(1, 48):
                 names = {facilities[code][0], total[code][0], foreign[code][0], occupancy[code][0]}
                 if len(names) != 1:
@@ -139,15 +157,16 @@ def parse_workbook(path: Path, year: int, release_type: str = "final") -> list[M
 def parse_national_occupancy(
     path: Path, year: int, release_type: str = "final"
 ) -> list[NationalOccupancyRecord]:
-    """Read the official national occupancy value from each monthly table 8."""
+    """Read the official national occupancy value from each monthly sheet."""
     workbook = load_workbook(path, read_only=True, data_only=True)
     records = []
+    table, header = FINAL_WORKBOOK_METRICS["occupancy_rate"]
     try:
         for month in range(1, 13):
-            title = f"第8表({month}月)"
+            title = f"{table}({month}月)"
             _validate_period(workbook, title, year, month)
             sheet = workbook[title]
-            column = _find_column(workbook, title, "客室稼働率")
+            column = _find_column(workbook, title, header)
             value = None
             for row in sheet.iter_rows(min_row=1, max_row=HEADER_SCAN_ROWS, values_only=True):
                 if JAPANESE_DATE.search(str(row[0] or "")):
