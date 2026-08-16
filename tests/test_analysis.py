@@ -2,10 +2,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hotel_supply_demand.analysis import analyze_database, load_analysis_config
-from hotel_supply_demand.database import build_database
-from hotel_supply_demand.models import MonthlyRecord, NationalOccupancyRecord
-from hotel_supply_demand.report import generate_reports
+from hotel_supply_demand.prefecture.analysis import analyze_database, load_analysis_config
+from hotel_supply_demand.prefecture.database import build_database
+from hotel_supply_demand.prefecture.models import MonthlyRecord, NationalOccupancyRecord
+from hotel_supply_demand.prefecture.report import generate_reports
 
 
 class AnalysisTest(unittest.TestCase):
@@ -76,6 +76,8 @@ class AnalysisTest(unittest.TestCase):
             self.assertTrue((reports / "index.html").is_file())
             self.assertTrue((reports / "market-sheets" / "01.html").is_file())
             index_html = (reports / "index.html").read_text(encoding="utf-8")
+            self.assertIn("都道府県別ホテルマーケットレポート", index_html)
+            self.assertIn("対象年：2025年確定値", index_html)
             self.assertIn("データ公表日 2026/07/01", index_html)
             for heading in ("1. 全国のホテル市況", "2. 都道府県一覧"):
                 self.assertIn(heading, index_html)
@@ -104,20 +106,28 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn('>+10.0%</td>', index_html)
             self.assertIn("標準偏差（σ） ÷ 年間平均客室稼働率（μ）", index_html)
             self.assertIn("最高値（ピーク月）と最低値（ボトム月）", index_html)
-            self.assertIn("47都道府県の単純平均ではありません", index_html)
-            self.assertNotIn("レビュー前・暫定版", index_html)
+            self.assertIn("全国の利用客室数 ÷ 全国の総客室数", index_html)
+            self.assertIn("都道府県別稼働率の単純平均ではありません", index_html)
+            self.assertIn("2025年 月次全国値の平均", index_html)
+            self.assertIn("月次公表値12か月の単純平均", index_html)
+            for tick in ("0.0%", "25.0%", "50.0%", "75.0%", "100.0%"):
+                self.assertIn(f">{tick}</text>", index_html)
+            self.assertNotIn("利用上の注意", index_html)
             detail_html = (reports / "market-sheets" / "01.html").read_text(encoding="utf-8")
             detail_headings = (
                 "1. 客室稼働率",
                 "2. 延べ宿泊者数（需要）",
                 "3. 宿泊施設数（供給）",
-                "4. 利用上の注意",
             )
             for heading in detail_headings:
                 self.assertIn(heading, detail_html)
             positions = [detail_html.index(heading) for heading in detail_headings]
             self.assertEqual(positions, sorted(positions))
             self.assertIn("LTM総延べ宿泊者数", detail_html)
+            self.assertIn("対象年：2025年確定値", detail_html)
+            self.assertIn(">0.0%</text>", detail_html)
+            self.assertIn(">100.0%</text>", detail_html)
+            self.assertNotIn("利用上の注意", detail_html)
             self.assertIn("宿泊施設数（2025年12月）", detail_html)
             self.assertIn("直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化", detail_html)
             self.assertIn("総延べ宿泊者数・月次推移（直近3年）", detail_html)
@@ -126,7 +136,6 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn("調査対象施設数の年次推移", detail_html)
             self.assertIn("2019年12月 100施設", detail_html)
             self.assertIn("2025年12月 110施設", detail_html)
-            self.assertNotIn("レビュー前・暫定版", detail_html)
             self.assertNotIn(">月</text>", detail_html)
             self.assertNotIn(">客室稼働率</text>", detail_html)
             self.assertIn("11,880人泊", detail_html)

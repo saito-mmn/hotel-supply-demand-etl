@@ -6,18 +6,13 @@ import argparse
 import json
 import sqlite3
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from .config import ConfigurationError, get_estat_app_id
-from .analysis import AnalysisError, load_analysis_config
 from .estat_client import EstatApiError, EstatClient
-from .fetcher import FetchError, fetch_sources
-from .parser import WorkbookFormatError
-from .pipeline import run_pipeline
-from .report import generate_reports
-from .sources import SourceConfigurationError, load_sources
-from .validation import DataQualityError
+from .fetcher import FetchError
 from .municipality.fetcher import fetch_municipality_sources
 from .municipality.parser import MunicipalityWorkbookFormatError
 from .municipality.pipeline import run_municipality_pipeline
@@ -27,6 +22,13 @@ from .municipality.sources import (
     load_municipality_sources,
 )
 from .municipality.validation import MunicipalityDataQualityError
+from .prefecture.analysis import AnalysisError, load_analysis_config
+from .prefecture.fetcher import fetch_sources
+from .prefecture.parser import WorkbookFormatError
+from .prefecture.pipeline import run_pipeline
+from .prefecture.report import generate_reports
+from .prefecture.sources import SourceConfigurationError, load_sources
+from .prefecture.validation import DataQualityError
 
 
 def _build_parser() -> argparse.ArgumentParser:

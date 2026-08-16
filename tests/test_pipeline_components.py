@@ -1,14 +1,20 @@
+import io
+import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Self
+from unittest.mock import patch
 
 from openpyxl import Workbook
 
-from hotel_supply_demand.database import build_database
 from hotel_supply_demand.fetcher import FetchError, sha256_file, validate_xlsx
-from hotel_supply_demand.parser import parse_national_occupancy, parse_workbook
-from hotel_supply_demand.validation import DataQualityError, validate_records
+from hotel_supply_demand.prefecture.database import build_database
+from hotel_supply_demand.prefecture.fetcher import fetch_sources
+from hotel_supply_demand.prefecture.parser import parse_national_occupancy, parse_workbook
+from hotel_supply_demand.prefecture.sources import Source
+from hotel_supply_demand.prefecture.validation import DataQualityError, validate_records
 
 
 def make_workbook(path: Path, year: int = 2025) -> None:
@@ -35,7 +41,77 @@ def make_workbook(path: Path, year: int = 2025) -> None:
     workbook.save(path)
 
 
+class FakeDownload(io.BytesIO):
+    class Headers:
+        @staticmethod
+        def get_content_type() -> str:
+            return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    headers = Headers()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+
 class PipelineComponentsTest(unittest.TestCase):
+    def test_fetch_replaces_stale_destination_even_when_download_hash_exists_elsewhere(self):
+        with tempfile.TemporaryDirectory() as directory:
+            raw_dir = Path(directory)
+            destination = raw_dir / "2025_final.xlsx"
+            download = raw_dir / "download.xlsx"
+            make_workbook(destination, 2024)
+            make_workbook(download, 2025)
+            downloaded_bytes = download.read_bytes()
+            downloaded_hash = sha256_file(download)
+            manifest = {
+                "schema_version": 1,
+                "files": [
+                    {
+                        "year": 2024,
+                        "release_type": "final",
+                        "url": "https://www.mlit.go.jp/2024.xlsx",
+                        "filename": "2024_final.xlsx",
+                        "sha256": downloaded_hash,
+                    },
+                    {
+                        "year": 2025,
+                        "release_type": "final",
+                        "url": "https://www.mlit.go.jp/2025.xlsx",
+                        "filename": destination.name,
+                        "sha256": "0" * 64,
+                    },
+                ],
+            }
+            (raw_dir / "manifest.json").write_text(
+                json.dumps(manifest), encoding="utf-8"
+            )
+            source = Source(
+                year=2025,
+                release_type="final",
+                url="https://www.mlit.go.jp/2025.xlsx",
+                filename=destination.name,
+                published_on="2026-07-06",
+            )
+
+            with patch(
+                "hotel_supply_demand.prefecture.fetcher.urlopen",
+                return_value=FakeDownload(downloaded_bytes),
+            ):
+                result = fetch_sources([source], raw_dir)
+
+            updated_manifest = json.loads(
+                (raw_dir / "manifest.json").read_text(encoding="utf-8")
+            )
+            updated_entry = next(
+                item for item in updated_manifest["files"] if item["year"] == 2025
+            )
+            self.assertEqual(result[0]["status"], "downloaded")
+            self.assertEqual(sha256_file(destination), downloaded_hash)
+            self.assertEqual(updated_entry["sha256"], downloaded_hash)
+
     def test_parse_validate_and_load(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

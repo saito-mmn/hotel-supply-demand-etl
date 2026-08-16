@@ -73,13 +73,7 @@ def _fmt(value: object, suffix: str = "") -> str:
     return html.escape(str(value))
 
 
-def _document(title: str, body: str, *, show_review: bool = True) -> str:
-    review = (
-        '<div class="review">レビュー前・暫定版：LTM／直近3か月／全国相対評価の'
-        '分析ロジックと生成結果は未レビューです。</div>'
-        if show_review
-        else ""
-    )
+def _document(title: str, body: str) -> str:
     return f"""<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{html.escape(title)}</title><style>
@@ -89,7 +83,6 @@ main{{max-width:1180px;margin:auto;padding:32px 20px 64px}}h1{{font-size:2rem;ma
 .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:22px 0}}.card,.panel{{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px}}
 .metric{{font-size:1.45rem;font-weight:700}}table{{width:100%;border-collapse:collapse;background:var(--paper);font-size:.9rem}}th,td{{padding:9px;border:1px solid var(--line);text-align:left}}th{{background:#eaf0f5}}
 a{{color:#075985}}.scroll{{overflow-x:auto}}
-.review{{border:1px solid #d97706;background:#fff7ed;color:#9a3412;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-weight:600}}
 .axis{{margin-top:24px}}.axis h2{{margin:0}}.question{{color:var(--muted);margin:.25rem 0 1rem}}
 .grid-2{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}.rank{{font-weight:700;color:var(--muted);width:2rem}}.chart{{width:100%;height:auto;display:block}}.chart-note{{font-size:.82rem;color:var(--muted)}}
 .market-kpis{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}}.metric-detail{{font-size:.82rem;color:var(--muted);margin-top:6px}}.card-note{{font-size:.72rem;color:var(--muted);margin-top:8px}}
@@ -98,7 +91,7 @@ a{{color:#075985}}.scroll{{overflow-x:auto}}
 .table-tools{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}}.table-search{{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:right;cursor:pointer}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}.th-seasonality{{background:#f0fdf4;border-top:3px solid #16a34a}}.th-diff,.td-diff{{background:#f8fafc;border-left:1px dashed #94a3b8}}.change-positive{{color:#047857;font-weight:700}}.change-negative{{color:#b45309;font-weight:700}}.change-flat{{color:#64748b;font-weight:700}}
 @media(min-width:768px){{.market-kpis{{grid-template-columns:repeat(4,minmax(0,1fr))}}.demand-charts{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}@media(max-width:760px){{.grid-2{{grid-template-columns:1fr}}}}
 @media print{{body{{background:#fff}}main{{max-width:none}}.panel,.card{{break-inside:avoid}}}}
-</style></head><body><main>{review}{body}</main></body></html>"""
+</style></head><body><main>{body}</main></body></html>"""
 
 
 def _load_time_series(database: Path, config: AnalysisConfig) -> tuple[dict[int, list[float]], dict[int, dict[int, list[dict]]]]:
@@ -128,13 +121,23 @@ def _load_time_series(database: Path, config: AnalysisConfig) -> tuple[dict[int,
     return national, prefectures
 
 
-def _line_chart(series: dict[int, list[float]], *, y_label: str, suffix: str = "", reference_year: int | None = None) -> str:
+def _line_chart(
+    series: dict[int, list[float]],
+    *,
+    y_label: str,
+    suffix: str = "",
+    reference_year: int | None = None,
+    y_domain: tuple[float, float] | None = None,
+) -> str:
     width, height = 760, 360
     left, right, top, bottom = 64, 24, 34, 54
     values = [value for yearly in series.values() for value in yearly]
-    low, high = min(values), max(values)
-    padding = (high - low) * 0.12 or 1
-    low, high = max(0, low - padding), high + padding
+    if y_domain is None:
+        low, high = min(values), max(values)
+        padding = (high - low) * 0.12 or 1
+        low, high = max(0, low - padding), high + padding
+    else:
+        low, high = y_domain
     colors = ["#64748b", "#3b82f6", "#8b5cf6", "#0f766e"]
 
     def x(month: int) -> float:
@@ -323,17 +326,16 @@ def _market_sheet(row: dict, published_on: str, history: dict[int, list[dict]], 
         ]
     )
     body = f"""<a href="../index.html">← 全国ダッシュボード</a><h1>{html.escape(row['prefecture_name'])} Market Sheet</h1>
-<p class="sub">{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p>
+<p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p>
 <div class="market-kpis">{card_html}</div>
-<section class="panel axis"><h2>1. 客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の{config.base_year}年と比較します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year)}</section>
+<section class="panel axis"><h2>1. 客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の{config.base_year}年と比較します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}</section>
 <section class="panel axis"><h2>2. 延べ宿泊者数（需要）</h2><p class="question">直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化を確認します。</p>
 <div class="demand-charts">
 <div class="chart-box"><h3>総延べ宿泊者数・月次推移（直近3年）</h3>{_monthly_demand_chart(history, recent_years)}</div>
 <div class="chart-box"><h3>年次需要構造と外国人比率（直近3年）</h3>{_annual_demand_structure_chart(history, recent_years)}</div>
 </div></section>
-<section class="panel axis"><h2>3. 宿泊施設数（供給）</h2><p class="question">調査対象施設数の年次推移（{config.base_year}年・直近3年）を確認し、供給環境の変化を把握します。</p>{_annual_facilities_chart(history, comparison_years)}<p class="chart-note">各年12月時点。客室数ではなく、調査対象の施設数です。</p></section>
-<section class="panel axis"><h2>4. 利用上の注意</h2><p>都道府県単位のマクロ統計であり、個別ホテルのADR、RevPAR、GOP、客室数、収益性や担保価値を直接示すものではありません。</p></section>"""
-    return _document(f"{row['prefecture_name']} Market Sheet", body, show_review=False)
+<section class="panel axis"><h2>3. 宿泊施設数（供給）</h2><p class="question">調査対象施設数の年次推移（{config.base_year}年・直近3年）を確認し、供給環境の変化を把握します。</p>{_annual_facilities_chart(history, comparison_years)}<p class="chart-note">各年12月時点。客室数ではなく、調査対象の施設数です。</p></section>"""
+    return _document(f"{row['prefecture_name']} Market Sheet", body)
 
 
 def _prefecture_cell(row: dict) -> str:
@@ -398,6 +400,9 @@ def _prefecture_table(rows: list[dict]) -> str:
 def _index_html(
     rows: list[dict], config: AnalysisConfig, published_on: str, national: dict[int, list[float]]
 ) -> str:
+    # Each monthly rate is the official nationwide ratio of occupied room-nights
+    # to total room-nights. These KPIs are arithmetic means of the 12 published
+    # monthly rates, not the Tourism Agency's room-night-weighted annual rate.
     target_average = sum(national[config.target_year]) / 12
     previous_average = sum(national[config.target_year - 1]) / 12
     base_average = sum(national[config.base_year]) / 12
@@ -406,14 +411,13 @@ def _index_html(
         for year in [config.base_year, config.target_year - 2, config.target_year - 1, config.target_year]
     }
     prefecture_table = _prefecture_table(rows)
-    body = f"""<h1>全国 Hotel Market Monitor</h1><p class="sub">{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村 Hotel Market Monitor →</a></p>
-<section class="panel axis"><h2>1. 全国のホテル市況</h2><p class="question">観光庁が公表する全国客室稼働率です。47都道府県の単純平均ではありません。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year)}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 全国平均稼働率</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
+    body = f"""<h1>都道府県別ホテルマーケットレポート</h1><p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村 Hotel Market Monitor →</a></p>
+<section class="panel axis"><h2>1. 全国のホテル市況</h2><p class="question">月次の全国客室稼働率は、全国の利用客室数 ÷ 全国の総客室数で算出された観光庁公表値です。都道府県別稼働率の単純平均ではありません。KPIは月次公表値12か月の単純平均です。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 月次全国値の平均</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
 <section class="panel axis"><h2>2. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p>{prefecture_table}<p class="chart-note">※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）<br>※ 繁閑レンジ ＝ 年間における月次客室稼働率の最高値（ピーク月）と最低値（ボトム月）のポイント差（pt）</p></section>
-<section class="panel axis"><h2>利用上の注意</h2><p>本レポートは担保物件所在地のマクロ市況を確認する一次資料です。個別ホテルのADR、RevPAR、GOP、収益性や担保価値を直接示すものではありません。</p></section>
 <script>
 (()=>{{const table=document.querySelector('#prefecture-table');if(!table)return;const body=table.tBodies[0],search=document.querySelector('#prefecture-search'),count=document.querySelector('#prefecture-count');let direction=1,column=-1;const visibleRows=()=>[...body.rows].filter(row=>!row.hidden);const update=()=>{{const query=search.value.trim().toLocaleLowerCase('ja');[...body.rows].forEach(row=>{{row.hidden=!row.cells[0].textContent.toLocaleLowerCase('ja').includes(query)}});count.textContent=`${{visibleRows().length}}県`;}};search.addEventListener('input',update);table.querySelectorAll('button[data-column]').forEach(button=>button.addEventListener('click',()=>{{const next=Number(button.dataset.column);direction=column===next?-direction:1;column=next;table.querySelectorAll('button[data-column]').forEach(item=>item.removeAttribute('data-direction'));button.dataset.direction=direction===1?'asc':'desc';const rows=[...body.rows];rows.sort((a,b)=>{{const av=a.cells[column].dataset.sort,bv=b.cells[column].dataset.sort,an=Number(av),bn=Number(bv);const result=Number.isNaN(an)||Number.isNaN(bn)?av.localeCompare(bv,'ja'):an-bn;return result*direction;}});rows.forEach(row=>body.appendChild(row));}}));}})();
 </script>"""
-    return _document("全国 Hotel Market Monitor", body, show_review=False)
+    return _document("都道府県別ホテルマーケットレポート", body)
 
 
 def generate_reports(database: Path, output_dir: Path, config: AnalysisConfig) -> dict:

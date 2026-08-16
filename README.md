@@ -103,16 +103,19 @@ hotel_market.sqlite3
 ```text
 src/hotel_supply_demand/
 ├── cli.py                       共通CLIエントリーポイント
-├── sources.py                   都道府県・年確定値ソース（移行予定）
-├── fetcher.py                   現行の都道府県Excel取得
-├── parser.py                    現行の都道府県parser
-├── validation.py               現行の都道府県品質検証
-├── database.py                 現行の都道府県DBロード
-├── analysis.py                 都道府県分析
-├── config.py                   分析・レポート設定
-├── models.py                   都道府県月次共通レコード
-├── pipeline.py                 都道府県処理のオーケストレーション
-├── report.py                   全国・都道府県レポート
+├── config.py                    共通の環境設定
+├── estat_client.py              e-Stat APIクライアント
+├── fetcher.py                   XLSX形式検証・SHA-256計算の共通機能
+├── prefecture/
+│   ├── models.py               都道府県月次レコード
+│   ├── sources.py              年確定値ソース設定の読込・検証
+│   ├── fetcher.py              都道府県Excel取得・manifest管理
+│   ├── parser.py               年確定値Excelの正規化
+│   ├── validation.py           都道府県レコードの品質検証
+│   ├── database.py             都道府県ファクトのDBロード
+│   ├── analysis.py             都道府県の派生指標計算
+│   ├── pipeline.py             年次処理のオーケストレーション
+│   └── report.py               全国・都道府県レポート
 └── municipality/
     ├── models.py               市区町村月次共通レコード
     ├── fetcher.py              e-Stat原Excel取得・manifest管理
@@ -124,7 +127,7 @@ src/hotel_supply_demand/
     └── sources.py              月次ソース設定の読込・検証
 ```
 
-現在は都道府県モジュールがパッケージ直下、市区町村モジュールが`municipality/`配下にあります。これは現行実装を正確に示すものであり、`prefecture/`や`common/`はまだ存在しません。共通化は、コードレビューで重複と差分を確認した後に独立した構造変更として判断します。
+都道府県固有処理と市区町村固有処理は、それぞれ`prefecture/`と`municipality/`へ分離しています。両パイプラインから利用するCLI、環境設定、e-Stat APIクライアント、XLSX形式検証・ハッシュ計算だけをパッケージ直下に置いています。
 
 ### SQLiteデータモデル
 

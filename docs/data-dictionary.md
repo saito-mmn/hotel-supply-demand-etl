@@ -95,4 +95,4 @@ Excelの空欄、`-`、`…`、`...`、`X`、`*`はゼロへ変換せずSQLite�
 | `monthly_market` | 最新需要・供給・都道府県名を結合した月次分析データ |
 | `annual_market` | 12か月の需要合計、稼働率平均、施設数平均を集計した年次分析データ |
 
-Phase 2の派生指標はファクトテーブルへ重複保存せず、Viewと`analysis.py`から再計算する。指標定義は[分析方法論](methodology.md)を参照する。
+Phase 2の派生指標はファクトテーブルへ重複保存せず、Viewと`prefecture/analysis.py`から再計算する。指標定義は[分析方法論](methodology.md)を参照する。

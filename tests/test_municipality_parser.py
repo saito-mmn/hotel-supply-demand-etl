@@ -7,9 +7,7 @@ from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 
-from hotel_supply_demand.database import build_database
 from hotel_supply_demand.fetcher import sha256_file
-from hotel_supply_demand.models import MonthlyRecord
 from hotel_supply_demand.municipality.database import load_municipality_records
 from hotel_supply_demand.municipality.fetcher import fetch_municipality_sources
 from hotel_supply_demand.municipality.parser import (
@@ -29,6 +27,8 @@ from hotel_supply_demand.municipality.validation import (
     MunicipalityDataQualityError,
     validate_municipality_records,
 )
+from hotel_supply_demand.prefecture.database import build_database
+from hotel_supply_demand.prefecture.models import MonthlyRecord
 
 
 def make_municipality_workbook(path: Path, *, omit_table: int | None = None) -> None:

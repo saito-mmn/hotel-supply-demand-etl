@@ -6,7 +6,6 @@ from pathlib import Path
 
 from .models import MonthlyRecord, NationalOccupancyRecord
 
-
 SCHEMA = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE source_files (

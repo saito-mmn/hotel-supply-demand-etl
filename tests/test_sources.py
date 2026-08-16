@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hotel_supply_demand.sources import SourceConfigurationError, load_sources
+from hotel_supply_demand.prefecture.sources import SourceConfigurationError, load_sources
 
 
 class SourcesTest(unittest.TestCase):

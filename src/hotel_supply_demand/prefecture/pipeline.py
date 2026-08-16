@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from .database import build_database
 from .fetcher import fetch_sources, sha256_file, validate_xlsx

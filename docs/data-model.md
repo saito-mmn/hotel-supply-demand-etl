@@ -133,6 +133,6 @@ erDiagram
 
 ## 実装との対応
 
-- 全体DDLと都道府県更新：`src/hotel_supply_demand/database.py`
+- 全体DDLと都道府県更新：`src/hotel_supply_demand/prefecture/database.py`
 - 市区町村DDLと月次更新：`src/hotel_supply_demand/municipality/database.py`
 - 列の意味、単位、NULLの扱い：[`data-dictionary.md`](data-dictionary.md)
