@@ -81,6 +81,7 @@ def _build_parser() -> argparse.ArgumentParser:
     municipality_pipeline.add_argument(
         "--report-dir", type=Path, default=Path("reports/latest/municipalities")
     )
+    municipality_pipeline.add_argument("--base-year", type=int, default=2019)
     municipality_pipeline.add_argument("--skip-report", action="store_true")
 
     municipality_report = subparsers.add_parser(
@@ -92,6 +93,7 @@ def _build_parser() -> argparse.ArgumentParser:
     municipality_report.add_argument(
         "--report-dir", type=Path, default=Path("reports/latest/municipalities")
     )
+    municipality_report.add_argument("--base-year", type=int, default=2019)
 
     return parser
 
@@ -201,10 +203,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.command == "municipality-pipeline" and not args.skip_report:
                 print("[hotel-etl] 市区町村レポートを生成しています", file=sys.stderr)
                 result["analysis"] = generate_municipality_reports(
-                    args.database, args.report_dir
+                    args.database, args.report_dir, base_year=args.base_year
                 )
         elif args.command == "municipality-report":
-            result = generate_municipality_reports(args.database, args.report_dir)
+            result = generate_municipality_reports(
+                args.database, args.report_dir, base_year=args.base_year
+            )
         else:
             client = EstatClient(app_id=get_estat_app_id())
             if args.command == "search-tables":

@@ -1,5 +1,10 @@
 # Hotel Supply & Demand ETL
 
+**[Live Demo：ホテルマーケットレポート](https://saito-mmn.github.io/hotel-supply-demand-etl/)**
+
+> [!NOTE]
+> Phase 4のローカル実装は完了していますが、GitHub上のPages初回設定と実デプロイは未実施です。現時点では、[リポジトリ内の全国レポート](reports/latest/index.html)から生成結果を確認できます。
+
 > [!IMPORTANT]
 > 年確定値による全国・都道府県マクロ分析と、月次第2次速報による市区町村ローカル市場分析を、同じリポジトリ内の独立したデータパイプラインとして扱います。
 
@@ -179,7 +184,7 @@ python -m venv .venv
 設定済みのe-Stat第2次速報Excelを取得し、検証後に同じSQLiteへ市区町村月次ファクトをロードします。e-Stat APIのアプリケーションIDは不要です。
 
 ```bash
-.venv/bin/hotel-etl municipality-pipeline
+.venv/bin/hotel-etl municipality-pipeline --base-year 2019
 ```
 
 このコマンドは次を実行します。
@@ -195,12 +200,12 @@ python -m venv .venv
 生成物は次のとおりです。
 
 - `reports/latest/municipalities/index.html`：都道府県絞り込み・市区町村検索が可能な一覧
-- `reports/latest/municipalities/market-sheets/`：需要、外国人比率、稼働率、客室規模別内訳を示す個別ページ
+- `reports/latest/municipalities/market-sheets/`：需要、外国人比率、稼働率、調査対象施設数を示す個別ページ
 
 DBを更新せずレポートだけ再生成する場合は次を使用します。
 
 ```bash
-.venv/bin/hotel-etl municipality-report
+.venv/bin/hotel-etl municipality-report --base-year 2019
 ```
 
 取得だけ、または取得済みExcelからのDB再生成だけを行う場合は次を使用します。
@@ -262,6 +267,8 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 依存関係は`pyproject.toml`に一本化しています。Google Colab・Notebook中心の旧実装と旧CSVは現行ツリーから除外し、Gitタグ`legacy-colab-final`から参照・復元できる状態にしています。Raw Excel、SQLite、`.env`はGit管理しません。
 
-`reports/latest/`は、クラウド公開前にもポートフォリオの出力例をリポジトリ上でレビューできるよう、現段階では意図的にGit管理しています。静的サイトの自動デプロイ完成後に、デプロイ工程だけで生成する方針への切り替えを再検討します。
+`reports/latest/`は、コードレビュー時に生成結果も確認できるよう、現段階では意図的にGit管理しています。公開時はこのディレクトリを丸ごと配信せず、`scripts/prepare_pages.py`が全国・都道府県・市区町村のHTMLと静的アセットだけを`.pages/`へ複製します。Market Sheet件数、内部リンク、公開対象の拡張子、個人パス・認証情報を検証し、CSV、JSON、SQLite、Excel、manifest、一時ファイルをGitHub Pagesの成果物から除外します。
+
+Phase 4では[GitHub Pages手動デプロイ手順](docs/deployment.md)に従い、Actions画面から生成済みレポートを手動公開します。データ取得・DB更新・レポート再生成を含む定期実行はPhase 6で追加します。
 
 現在の主な課題は、旧実装由来の再現性不足ではなく、市区町村parser・品質ルール・分析指標・レポート表示のレビューと、安全な定期更新・クラウド公開です。実施順序と完了条件は[v2ロードマップ](plan_memo/v2-roadmap.md)に記載しています。

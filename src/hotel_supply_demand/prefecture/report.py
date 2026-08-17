@@ -361,6 +361,8 @@ def _prefecture_table(rows: list[dict]) -> str:
             (_prefecture_cell(row), row["prefecture_name"], ""),
             (f'{row["average_occupancy_rate"]:.1f}%', row["average_occupancy_rate"], "numeric"),
             (f'{row["occupancy_ltm_yoy_pp"]:+.1f}pt', row["occupancy_ltm_yoy_pp"], f'numeric td-diff {change_class(row["occupancy_ltm_yoy_pp"])}'),
+            (f'{row["total_guests"]:,.0f}人泊', row["total_guests"], "numeric"),
+            (f'{row["demand_ltm_yoy_pct"]:+.1f}%', row["demand_ltm_yoy_pct"], f'numeric td-diff {change_class(row["demand_ltm_yoy_pct"])}'),
             (f'{row["facilities"]:,.0f}施設', row["facilities"], "numeric"),
             (f'{row["facility_yoy_pct"]:+.1f}%', row["facility_yoy_pct"], f'numeric td-diff {change_class(row["facility_yoy_pct"])}'),
             (f'{row["foreign_share_pct"]:.1f}%', row["foreign_share_pct"], "numeric"),
@@ -380,19 +382,21 @@ def _prefecture_table(rows: list[dict]) -> str:
     second_row = [
         (1, "LTM平均稼働率", ""),
         (2, "稼働率 前年差", "th-diff"),
-        (3, "宿泊施設数", ""),
-        (4, "施設数 前年比", "th-diff"),
-        (5, "外国人比率", ""),
-        (6, "外国人客数 前年比", "th-diff"),
-        (7, "Seasonal CV", ""),
-        (8, "繁閑レンジ", ""),
-        (9, "ピーク月 / ボトム月", ""),
+        (3, "延べ宿泊者数", ""),
+        (4, "宿泊者数 前年比", "th-diff"),
+        (5, "宿泊施設数", ""),
+        (6, "施設数 前年比", "th-diff"),
+        (7, "外国人比率", ""),
+        (8, "外国人客数 前年比", "th-diff"),
+        (9, "Seasonal CV", ""),
+        (10, "繁閑レンジ", ""),
+        (11, "ピーク月 / ボトム月", ""),
     ]
     detail_headers = "".join(
         f'<th class="sortable numeric {css_class}"><button type="button" data-column="{index}" aria-label="{html.escape(label)}で並べ替え">{html.escape(label)}</button></th>'
         for index, label, css_class in second_row
     )
-    group_headers = '''<tr><th rowspan="2">都道府県</th><th colspan="4" class="th-group th-supply-demand">需給</th><th colspan="2" class="th-group th-inbound">インバウンド</th><th colspan="3" class="th-group th-seasonality">季節変動</th></tr>'''
+    group_headers = '''<tr><th rowspan="2">都道府県</th><th colspan="6" class="th-group th-supply-demand">需給</th><th colspan="2" class="th-group th-inbound">インバウンド</th><th colspan="3" class="th-group th-seasonality">季節変動</th></tr>'''
     return f'''<div class="table-tools"><input id="prefecture-search" class="table-search" type="search" placeholder="都道府県名で検索" aria-label="都道府県名で検索"><span id="prefecture-count" class="sub">{len(rows)}県</span></div>
 <div class="scroll"><table id="prefecture-table"><thead>{group_headers}<tr>{detail_headers}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'''
 
@@ -411,7 +415,7 @@ def _index_html(
         for year in [config.base_year, config.target_year - 2, config.target_year - 1, config.target_year]
     }
     prefecture_table = _prefecture_table(rows)
-    body = f"""<h1>都道府県別ホテルマーケットレポート</h1><p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村 Hotel Market Monitor →</a></p>
+    body = f"""<h1>都道府県別ホテルマーケットレポート</h1><p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村別ホテルマーケットレポート →</a></p>
 <section class="panel axis"><h2>1. 全国のホテル市況</h2><p class="question">月次の全国客室稼働率は、全国の利用客室数 ÷ 全国の総客室数で算出された観光庁公表値です。都道府県別稼働率の単純平均ではありません。KPIは月次公表値12か月の単純平均です。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 月次全国値の平均</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
 <section class="panel axis"><h2>2. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p>{prefecture_table}<p class="chart-note">※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）<br>※ 繁閑レンジ ＝ 年間における月次客室稼働率の最高値（ピーク月）と最低値（ボトム月）のポイント差（pt）</p></section>
 <script>

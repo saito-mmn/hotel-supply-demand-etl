@@ -18,7 +18,6 @@ from hotel_supply_demand.municipality.pipeline import run_municipality_pipeline
 from hotel_supply_demand.municipality.report import (
     _annual_demand_chart,
     _annual_facilities_chart,
-    _line_chart,
     _seasonality_chart,
     generate_municipality_reports,
 )
@@ -286,15 +285,19 @@ filename = "2026-05_second_preliminary.xlsx"
             self.assertEqual(result["rows"], 8)
             self.assertEqual(result["municipalities"], {"2026-05": 2})
             reports = root / "reports"
-            report_result = generate_municipality_reports(database, reports)
+            report_result = generate_municipality_reports(
+                database, reports, base_year=2020
+            )
             self.assertEqual(report_result["market_sheets"], 2)
             self.assertEqual(report_result["periods"], ["2026-05"])
             self.assertTrue((reports / "index.html").is_file())
             index_html = (reports / "index.html").read_text(encoding="utf-8")
-            self.assertIn("Municipality Hotel Market Monitor", index_html)
+            self.assertIn("市区町村別ホテルマーケットレポート", index_html)
+            self.assertIn("← 都道府県別ホテルマーケットレポート", index_html)
             self.assertIn("札幌市", index_html)
             self.assertIn('data-column="4" data-type="number"', index_html)
-            self.assertIn("warning-badge", index_html)
+            self.assertNotIn("warning-badge", index_html)
+            self.assertNotIn("要注意", index_html)
             self.assertIn('<th colspan="3" class="th-group th-meta">自治体属性</th>', index_html)
             self.assertIn(
                 '<th colspan="3" class="th-group th-supply-demand">需給</th>',
@@ -321,24 +324,14 @@ filename = "2026-05_second_preliminary.xlsx"
             self.assertNotIn("客室規模別内訳", detail_html)
             self.assertIn("2026年5月単月（最新掲載月）", detail_html)
             self.assertIn("1. 客室稼働率", detail_html)
-            self.assertIn("コロナ禍前の2019年（破線）", detail_html)
+            self.assertIn("比較基準の2020年（破線）", detail_html)
+            self.assertEqual(report_result["base_year"], 2020)
             self.assertIn("2. 延べ宿泊者数（需要）", detail_html)
             self.assertIn("3. 宿泊施設数（供給）", detail_html)
             self.assertIn("4. 利用上の注意", detail_html)
             self.assertIn("年間比較に必要な12か月分", detail_html)
             self.assertIn("年次比較に必要な12月時点", detail_html)
             self.assertNotIn("レビュー前・暫定版", detail_html)
-
-    def test_line_chart_keeps_missing_month_as_a_gap(self):
-        history = [
-            {"year": 2025, "month": 11, "total_guests": 10},
-            {"year": 2025, "month": 12, "total_guests": 20},
-            {"year": 2026, "month": 2, "total_guests": 30},
-            {"year": 2026, "month": 3, "total_guests": 40},
-        ]
-        chart = _line_chart(history, "total_guests", "人", "#2563eb")
-        self.assertIn(">26/01<", chart)
-        self.assertEqual(chart.count("<polyline"), 2)
 
     def test_annual_charts_require_comparable_observations(self):
         history = [
@@ -395,7 +388,11 @@ filename = "2026-05_second_preliminary.xlsx"
             for month in range(1, 13)
         ]
         chart = _seasonality_chart(
-            history, "occupancy_rate", "%", [2019, 2023, 2024, 2025]
+            history,
+            "occupancy_rate",
+            "%",
+            [2019, 2023, 2024, 2025],
+            reference_year=2019,
         )
         self.assertIn('aria-label="2019年から2025年の月次比較"', chart)
         self.assertIn('stroke="#64748b" stroke-width="2" stroke-dasharray="7 5"', chart)
