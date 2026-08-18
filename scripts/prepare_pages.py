@@ -141,8 +141,8 @@ def _validate_public_files(output: Path) -> None:
 def prepare_pages(source: Path, output: Path) -> tuple[int, int, int]:
     source = source.resolve()
     output = output.resolve()
-    if source == output or source in output.parents:
-        raise ValueError("output must not be the source directory or one of its descendants")
+    if source == output or source in output.parents or output in source.parents:
+        raise ValueError("source and output directories must be independent")
     prefectures, municipalities = _validate_source(source)
     copied = _copy_public_files(source, output)
     _validate_public_files(output)

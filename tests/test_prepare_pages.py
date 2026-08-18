@@ -70,6 +70,25 @@ class PreparePagesTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "sensitive marker"):
                 prepare_pages(source, root / "pages")
 
+    def test_rejects_output_that_contains_source_without_deleting_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = self._source(root)
+
+            with self.assertRaisesRegex(ValueError, "must be independent"):
+                prepare_pages(source, root)
+
+            self.assertTrue(source.is_dir())
+            self.assertTrue((source / "index.html").is_file())
+
+    def test_rejects_output_inside_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = self._source(root)
+
+            with self.assertRaisesRegex(ValueError, "must be independent"):
+                prepare_pages(source, source / "pages")
+
 
 if __name__ == "__main__":
     unittest.main()
