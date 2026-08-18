@@ -317,7 +317,7 @@ Live Demo
 - README上部にLive Demoリンクを追加し、`docs/deployment.md`に初回設定、手動実行、ローカル検証を記載した
 - Phase 4ではレポート生成を自動化せず、レビュー済みの`reports/latest/`だけを公開する。定期生成・自動デプロイはPhase 6へ分離する
 
-GitHub上での初回Pages設定、デフォルトブランチへの反映、workflow実行、公開URLの実機確認が完了した時点でPhase 4完了とする。
+GitHub上での初回Pages設定、デフォルトブランチへの反映、workflow実行、公開URLの実機確認まで完了した。2026年8月18日にPhase 4のざっくりしたコードレビューと表示確認を完了し、詳細レビューはPhase 6の自動デプロイ着手前に再確認する。
 
 ## 11. Phase 5：更新パイプライン
 
@@ -365,6 +365,21 @@ GitHub上での初回Pages設定、デフォルトブランチへの反映、wor
 - 途中失敗で正常な公開レポートを壊さない
 - 手動再実行と特定年月の再処理が可能
 - 過年度訂正を検知・再検証し、変更前後の来歴を追跡できる
+
+### 実装状況（2026-08-18）
+
+- `check-updates`で、観光庁の年確定値とe-Statの月次第2次速報の公式一覧ページを読み、設定との差分だけを確認できる
+- e-Statでは第2次速報・原Excel（`fileKind=0`）だけを採用し、第1次速報と閲覧用Excelを除外する
+- `update`で両ドメイン、`--domain`で片方だけを更新できる
+- `ETag`・`Last-Modified`の条件付き確認とSHA-256比較により、同一URLの差し替えを検知する
+- URL・source ID・ハッシュ変更前の来歴をmanifestの`revisions`へ保持する
+- 市区町村は変更期間だけを一時DBへトランザクション反映し、都道府県は全確定値を一時DBへ再生成する
+- DB、HTML、ソース設定は全検証成功後に切り替え、切替失敗時は旧成果物を復元する
+- 新規データなしは`updated: false`で正常終了し、DBとHTMLを変更しない
+- `--periods`・`--years`で特定期間を手動再処理できる
+- 観光庁例外ソースの競合と、新規年確定値の公表日不明は自動推測せず、承認・設定要求として報告する
+
+実公式ページに対する`check-updates`の動作確認まで完了した。実ファイルを取得する`update`の本番実行と、更新発生時の実データ差分レビューは未実施である。
 
 ## 12. Phase 6：CI・定期実行・自動デプロイ
 
@@ -418,6 +433,19 @@ GitHub Pagesへdeploy
 - 失敗時に前回の正常サイトが維持される
 - GitHub ActionsからGitHub Pagesへの生成・検証・デプロイが再現可能である
 - 自動デプロイ安定後に、`reports/latest/`をmainブランチで管理し続けるか再判断している
+
+### 実装状況（2026-08-18）
+
+- `.github/workflows/ci.yml`に、Pull Request・`main`へのpushを対象とする外部公式サイト非依存のCIを実装した
+- クリーン環境へのinstall、Ruff、更新系モジュールを対象とするmypy、unit・fixture test、SQLiteを含む統合テスト、追跡ファイル検査、HTML件数・リンク検証を品質ゲートにした
+- 既存parser・analysis・report・CLIには型エラーが残るため、mypyの対象はPhase 5・6で追加した更新系から開始し、全`src`への拡張はコードレビュー後の技術的負債として残す
+- `.github/workflows/update-and-deploy.yml`に、市区町村の週次確認、都道府県の6～8月確認期間、ドメイン指定の手動実行を実装した
+- 前回成功時のRaw Excel、manifest、SQLite、採用ソース設定、生成レポートをActions Cacheから復元し、差分更新に利用する
+- `approval_required`・`configuration_required`、ETL・品質検証・HTML検証の失敗時はdeployせず、前回のPagesを維持する
+- 新規データなしは正常終了し、通常は再デプロイしない。手動時だけ既存生成物の強制再公開を選べる
+- 更新結果、採用設定、manifestを監査artifactとして30日間保持する
+
+Phase 6のローカル実装まで完了した。Phase 5・6のコードレビュー、GitHub Actions上の初回実行、定期実行の安定性確認は未実施である。したがって、`reports/latest/`をmainブランチで管理し続けるかの判断は、複数回の更新成功を確認するまで保留する。
 
 ## 13. Phase 7：ポートフォリオ仕上げ・リリース
 

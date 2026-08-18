@@ -29,6 +29,7 @@ from .prefecture.pipeline import run_pipeline
 from .prefecture.report import generate_reports
 from .prefecture.sources import SourceConfigurationError, load_sources
 from .prefecture.validation import DataQualityError
+from .update import discover_updates, update_municipality, update_prefecture
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -94,6 +95,40 @@ def _build_parser() -> argparse.ArgumentParser:
         "--report-dir", type=Path, default=Path("reports/latest/municipalities")
     )
     municipality_report.add_argument("--base-year", type=int, default=2019)
+
+    check_updates = subparsers.add_parser(
+        "check-updates", help="Discover official prefecture and municipality updates"
+    )
+    check_updates.add_argument(
+        "--prefecture-sources", type=Path, default=Path("sources.toml")
+    )
+    check_updates.add_argument(
+        "--municipality-sources", type=Path, default=Path("municipality_sources.toml")
+    )
+
+    update = subparsers.add_parser(
+        "update", help="Discover, validate, and atomically publish official updates"
+    )
+    update.add_argument(
+        "--domain", choices=("all", "prefecture", "municipality"), default="all"
+    )
+    update.add_argument("--prefecture-sources", type=Path, default=Path("sources.toml"))
+    update.add_argument(
+        "--municipality-sources", type=Path, default=Path("municipality_sources.toml")
+    )
+    update.add_argument("--prefecture-raw-dir", type=Path, default=Path("data/raw"))
+    update.add_argument(
+        "--municipality-raw-dir", type=Path, default=Path("data/raw/municipality")
+    )
+    update.add_argument(
+        "--database", type=Path, default=Path("data/processed/hotel_market.sqlite3")
+    )
+    update.add_argument("--report-dir", type=Path, default=Path("reports/latest"))
+    update.add_argument("--analysis-config", type=Path, default=Path("analysis.toml"))
+    update.add_argument("--target-year", type=int)
+    update.add_argument("--base-year", type=int, default=2019)
+    update.add_argument("--years", type=int, nargs="+")
+    update.add_argument("--periods", nargs="+", metavar="YYYY-MM")
 
     return parser
 
@@ -209,6 +244,38 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = generate_municipality_reports(
                 args.database, args.report_dir, base_year=args.base_year
             )
+        elif args.command == "check-updates":
+            result = discover_updates(
+                args.prefecture_sources, args.municipality_sources
+            )
+        elif args.command == "update":
+            result = {}
+
+            def progress(message: str) -> None:
+                print(f"[hotel-etl] {message}", file=sys.stderr)
+
+            if args.domain in {"all", "prefecture"}:
+                result["prefecture"] = update_prefecture(
+                    args.prefecture_sources,
+                    args.prefecture_raw_dir,
+                    args.database,
+                    args.report_dir,
+                    args.analysis_config,
+                    years=set(args.years) if args.years else None,
+                    target_year=args.target_year,
+                    base_year=args.base_year,
+                    progress=progress,
+                )
+            if args.domain in {"all", "municipality"}:
+                result["municipality"] = update_municipality(
+                    args.municipality_sources,
+                    args.municipality_raw_dir,
+                    args.database,
+                    args.report_dir / "municipalities",
+                    base_year=args.base_year,
+                    periods=_municipality_periods(args.periods),
+                    progress=progress,
+                )
         else:
             client = EstatClient(app_id=get_estat_app_id())
             if args.command == "search-tables":

@@ -19,6 +19,7 @@ hotel-etl = "hotel_supply_demand.cli:main"
 
 [project.optional-dependencies]
 dev = [
+  "mypy>=1.14",
   "pytest>=8.0",
   "ruff>=0.9",
 ]
@@ -32,3 +33,10 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true

@@ -111,6 +111,7 @@ class PipelineComponentsTest(unittest.TestCase):
             self.assertEqual(result[0]["status"], "downloaded")
             self.assertEqual(sha256_file(destination), downloaded_hash)
             self.assertEqual(updated_entry["sha256"], downloaded_hash)
+            self.assertEqual(updated_entry["revisions"][0]["sha256"], "0" * 64)
 
     def test_parse_validate_and_load(self):
         with tempfile.TemporaryDirectory() as directory:

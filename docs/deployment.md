@@ -1,4 +1,4 @@
-# GitHub Pages手動デプロイ
+# GitHub Pages・自動更新運用
 
 ## 公開構成
 
@@ -15,7 +15,19 @@ GitHub Pages
 公開URL：<https://saito-mmn.github.io/hotel-supply-demand-etl/>
 
 > [!NOTE]
-> 2026年8月17日時点ではworkflowと公開前検証のローカル実装まで完了しており、GitHub上のPages初回設定、workflow実行、公開URLの実機確認は未実施です。
+> 手動Pages公開と表示確認は完了しています。公式データの定期更新workflowは実装直後で、コードレビューおよびGitHub Actions上の実行確認前です。
+
+## workflowの分離
+
+| workflow | 契機 | 外部公式サイト | 役割 |
+|---|---|---|---|
+| `ci.yml` | Pull Request、`main`へのpush | アクセスしない | install、lint、更新系の型検査、fixture test、リポジトリ・HTML検証 |
+| `pages.yml` | 手動 | アクセスしない | Git管理中のレビュー済みHTMLを再公開 |
+| `update-and-deploy.yml` | 定期、手動 | アクセスする | 更新検出、Excel取得、DB・HTML再生成、成功時のみ公開 |
+
+通常のコード変更は固定fixtureだけで検証し、公式サイトの一時障害から切り離します。公式更新workflowが失敗した場合はdeploy jobへ進まないため、前回成功時のPagesが維持されます。
+
+型検査はPhase 5・6で追加した更新検出・自動化モジュールから導入しています。既存parser・analysis・report・CLIを含む全`src`へのmypy拡張は、統合コードレビュー後の段階的な品質改善事項です。
 
 ## 初回設定
 
@@ -31,6 +43,16 @@ GitHub Pages
 4. `build` と `deploy` が成功したこと、およびworkflow summaryに表示されるURLを確認する。
 
 workflowはレポートを再生成しません。Gitでレビュー済みの`reports/latest/`を公開するため、デプロイ前に必要なパイプラインまたはreportコマンドを実行し、生成差分を確認します。
+
+## 公式データの定期・手動更新
+
+定期実行は、市区町村第2次速報を毎週火曜日、都道府県年確定値を6～8月の1日・15日に確認します。公表日は固定されないため、特定日1回ではなく確認期間を設けています。時刻はUTCです。
+
+手動実行では`domain`に`all`、`municipality`、`prefecture`を指定できます。通常はデータ変更があった場合だけdeployします。データ変更なしでも現在の生成物を再公開する必要がある場合だけ、`deploy_without_update`を有効にします。
+
+Actionsの実行環境は毎回破棄されるため、前回成功時のRaw Excel、manifest、SQLite、採用済みソース設定、生成レポートをActions Cacheへ保存します。キャッシュは高速化・差分検知の運用状態であり、公開artifactには含めません。更新結果、設定、manifestは30日間の監査artifactとして保存します。
+
+`approval_required`または`configuration_required`が1件でもある場合は、人が公式情報を確認するまで公開を停止します。新規データがなければ正常終了し、不要な再デプロイを行いません。
 
 ## ローカル事前検証
 
@@ -54,4 +76,4 @@ python3 -m http.server 8000 --directory .pages
 
 ## Phase 6との境界
 
-Phase 4は意図した生成結果を人が確認してから公開する手動デプロイです。公式ソースの更新検知、Excel取得、SQLite更新、HTML再生成、テスト、定期デプロイの自動化はPhase 6で扱います。
+Phase 4の手動デプロイは、レビュー済み生成物の再公開手段として残します。Phase 6の公式更新workflowは、公式ソースの更新検知、Excel取得、SQLite更新、HTML再生成、品質ゲート、成功時のデプロイを担います。Phase 5・6は実装直後であり、コードレビューとActions上の実運用確認後に公開運用へ移行します。

@@ -3,7 +3,7 @@
 **[Live Demo：ホテルマーケットレポート](https://saito-mmn.github.io/hotel-supply-demand-etl/)**
 
 > [!NOTE]
-> Phase 4のローカル実装は完了していますが、GitHub上のPages初回設定と実デプロイは未実施です。現時点では、[リポジトリ内の全国レポート](reports/latest/index.html)から生成結果を確認できます。
+> GitHub PagesのLive Demoは公開済みです。Phase 5・6の更新処理と自動デプロイは実装直後で、コードレビューおよびGitHub Actions上の実運用確認前です。
 
 > [!IMPORTANT]
 > 年確定値による全国・都道府県マクロ分析と、月次第2次速報による市区町村ローカル市場分析を、同じリポジトリ内の独立したデータパイプラインとして扱います。
@@ -55,6 +55,7 @@ API提供範囲を実測した結果、2019・2024・2025年の年確定値は�
 - 取得からDB生成・静的HTMLレポートまでの一括実行と、各工程の個別再実行を選べるCLI
 - fixtureを用いたparser・品質検証・SQLiteロード・レポート生成の自動テスト
 - 全国・都道府県・市区町村へドリルダウンする静的HTMLレポート
+- 公式一覧ページの更新検出、条件付き再取得、変更期間だけのDB反映とレポート再生成
 
 この再構築を通じて、外部の非構造データを取得・正規化するだけでなく、出典、版、品質、再実行性、下流利用まで考慮した小規模データパイプラインの設計・実装を目指します。
 
@@ -62,7 +63,7 @@ API提供範囲を実測した結果、2019・2024・2025年の年確定値は�
 
 年確定値は更新頻度が低く、MVPの対象ファイル数も限定されます。そのため、都道府県側はレビュー可能な`sources.toml`に取得対象URLを明示します。市区町村側も初期版では公式一覧ページを実行時にスクレイピングせず、`municipality_sources.toml`へ提供元、調査年月、公表日、source ID、原ExcelのURLを固定します。いずれも取得時にXLSX形式、SHA-256、取得履歴を検証する方針です。
 
-公式ページからのリンク自動発見、速報値の定期取得、GitHub Actionsによる巡回、自動PRは、継続運用の必要性が確認された場合のOptional機能とします。低頻度・少数ファイルのために複雑な収集基盤を先に作らず、ETL本体、品質検証、再現性を優先します。
+Phase 5では、手動CLIから公式一覧ページのリンクを検出し、変更がある場合だけ取得からHTML再生成まで実行できるようにしました。Phase 6では通常CIと公式データ更新を分離し、定期・手動更新、品質ゲート、成功時だけのGitHub Pagesデプロイを実装しています。Phase 5・6はコードレビューおよびActions上の実運用確認前です。
 
 e-Stat APIの実測結果は [e-Stat API 提供範囲調査](docs/estat-api-audit.md) に記録しています。
 
@@ -71,6 +72,10 @@ e-Stat APIの実測結果は [e-Stat API 提供範囲調査](docs/estat-api-audi
 都道府県側は、2019～2025年の年確定値Excelについて、取得、manifest・SHA-256による来歴管理、SQLite再生成、全国ダッシュボード、47都道府県Market Sheetまで実装済みです。分析ロジックとレポートは暫定版でありレビュー前です。
 
 市区町村側は、公式原Excelを固定する`municipality_sources.toml`、取得・manifest・SHA-256管理、月次共通レコードモデル、参考第5・6・8・11・12表を結合するparser、品質検証、SQLiteロード、専用CLI、市区町村一覧と月次Market Sheetを実装しました。都道府県側と比較期間を合わせ、2019年1月～2026年5月の連続89か月、72,688レコード、307自治体を収録しています。原則はe-Statを利用し、e-Statから原Excelリンクを確認できない2026年1月のみ観光庁公式Excelを採用します。parserは都道府県名と市区町村名を分離し、総数・1～9室・10～19室・20室以上を別レコードとして保持します。レポートと集計ロジックは暫定版でありレビュー前です。月別の掲載状況、例外ソース、公式表の値・掲載差異、2026年1月からの層化基準変更は[市区町村第2次速報 ソース収録状況](docs/municipality-source-coverage.md)に記録しています。
+
+Phase 5では、観光庁の年確定値とe-Statの月次第2次速報を公式一覧ページから検出し、変更がある場合だけ一時DBと一時レポートで全工程を検証してから既存成果物を切り替える更新コマンドを追加しました。運用方法と安全側に停止する条件は[公式データ更新手順](docs/update-pipeline.md)を参照してください。
+
+Phase 6では、Pull Request・push時の固定fixture CIと、公式データを確認する定期・手動workflowを分離しました。後者は取得、品質検証、SQLite更新、HTML検証をすべて通過し、人による設定・承認が不要な場合だけPagesへ反映します。運用と失敗時の扱いは[GitHub Pages・自動更新運用](docs/deployment.md)を参照してください。
 
 ### 処理フローとモジュール構成
 
@@ -111,9 +116,11 @@ src/hotel_supply_demand/
 ├── config.py                    共通の環境設定
 ├── estat_client.py              e-Stat APIクライアント
 ├── fetcher.py                   XLSX形式検証・SHA-256計算の共通機能
+├── update.py                    更新検出・一時成果物生成・安全な切替
 ├── prefecture/
 │   ├── models.py               都道府県月次レコード
 │   ├── sources.py              年確定値ソース設定の読込・検証
+│   ├── discovery.py            観光庁の年確定値リンク検出
 │   ├── fetcher.py              都道府県Excel取得・manifest管理
 │   ├── parser.py               年確定値Excelの正規化
 │   ├── validation.py           都道府県レコードの品質検証
@@ -123,6 +130,7 @@ src/hotel_supply_demand/
 │   └── report.py               全国・都道府県レポート
 └── municipality/
     ├── models.py               市区町村月次共通レコード
+    ├── discovery.py            e-Stat第2次速報の原Excelリンク検出
     ├── fetcher.py              e-Stat原Excel取得・manifest管理
     ├── parser.py               市区町村参考表の検証・結合
     ├── validation.py           市区町村月次レコードの品質検証
@@ -132,7 +140,7 @@ src/hotel_supply_demand/
     └── sources.py              月次ソース設定の読込・検証
 ```
 
-都道府県固有処理と市区町村固有処理は、それぞれ`prefecture/`と`municipality/`へ分離しています。両パイプラインから利用するCLI、環境設定、e-Stat APIクライアント、XLSX形式検証・ハッシュ計算だけをパッケージ直下に置いています。
+都道府県固有処理と市区町村固有処理は、それぞれ`prefecture/`と`municipality/`へ分離しています。両ドメインの更新順序と成果物切替を調整する`update.py`、CLI、環境設定、e-Stat APIクライアント、XLSX形式検証・ハッシュ計算はパッケージ直下に置いています。
 
 ### SQLiteデータモデル
 
@@ -218,6 +226,22 @@ DBを更新せずレポートだけ再生成する場合は次を使用します
 同じ月を再実行した場合、URL・source ID・SHA-256が一致するExcelの再取得を省略し、SQLiteの対象月を1トランザクションで置き換えます。
 
 特定月だけを更新する場合は、例えば`--periods 2026-05`を指定します。
+
+### 公式データの更新
+
+Excelを取得せず、公式一覧ページと設定の差分だけを確認します。
+
+```bash
+.venv/bin/hotel-etl check-updates
+```
+
+都道府県・市区町村の更新確認から、取得、検証、SQLite反映、HTML再生成まで実行します。
+
+```bash
+.venv/bin/hotel-etl update
+```
+
+片方だけ更新する場合は`--domain prefecture`または`--domain municipality`を指定します。特定年・年月の手動再処理には`--years 2025`、`--periods 2026-05`を使用できます。更新がなければ正常終了し、SQLiteとHTMLは変更しません。
 
 ### e-Stat API探索の実行方法
 

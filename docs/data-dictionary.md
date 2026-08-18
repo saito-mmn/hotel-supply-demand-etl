@@ -8,7 +8,7 @@ Phase 1は観光庁「宿泊旅行統計調査」の年確定値Excelを、都�
 |---|---|---|
 | `year`, `release_type` | INTEGER, TEXT | 調査対象年と公表区分 |
 | `url`, `filename` | TEXT | 公式Excelの取得元と保存名 |
-| `published_on` | TEXT | 観光庁による当該年次確定値の公表日（ISO 8601日付） |
+| `published_on` | TEXT | 現在採用する年次確定値について設定した公表（更新）日（ISO 8601日付） |
 | `retrieved_at` | TEXT | ファイルを取得した日時（ISO 8601日時） |
 | `sha256`, `size_bytes` | TEXT, INTEGER | ファイル同一性確認用のハッシュとサイズ |
 
@@ -59,7 +59,7 @@ Excelの空欄、`-`、`…`、`...`、`X`、`*`はゼロへ変換せずSQLite�
 | `year`, `month`, `release_type` | INTEGER, INTEGER, TEXT | 調査年月と`second_preliminary` |
 | `stat_inf_id` | TEXT | 公式ファイルのsource ID。通常はe-Statの`statInfId`、観光庁例外ソースは`mlit:<content ID>` |
 | `url`, `filename` | TEXT | `fileKind=0`の原Excel URLと保存名 |
-| `published_on`, `retrieved_at` | TEXT | 公表日と取得日時 |
+| `published_on`, `retrieved_at` | TEXT | 現在採用するファイルの公表（更新）日と取得日時 |
 | `sha256`, `size_bytes` | TEXT, INTEGER | ファイル同一性確認情報 |
 
 ### `municipalities`

@@ -7,23 +7,17 @@ from pathlib import Path
 from .database import build_database
 from .fetcher import fetch_sources, sha256_file, validate_xlsx
 from .parser import parse_national_occupancy, parse_workbook
-from .sources import load_sources
+from .sources import Source, load_sources
 from .validation import validate_records
 
 
-def run_pipeline(
-    sources_path: Path,
+def build_prefecture_database(
+    sources: list[Source],
     raw_dir: Path,
     database_path: Path,
-    years: set[int] | None = None,
-    fetch: bool = True,
     progress: Callable[[str], None] | None = None,
 ) -> dict:
     notify = progress or (lambda _message: None)
-    sources = load_sources(sources_path, years)
-    if fetch:
-        notify(f"公式Excelを確認しています（{len(sources)}ファイル）")
-        fetch_sources(sources, raw_dir)
     manifest_path = raw_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     indexed = {(item["year"], item["release_type"]): item for item in manifest["files"]}
@@ -50,3 +44,19 @@ def run_pipeline(
     notify("SQLiteを生成しています")
     build_database(database_path, records, used_entries, national_occupancy)
     return {**quality, "database": str(database_path), "source_files": len(used_entries)}
+
+
+def run_pipeline(
+    sources_path: Path,
+    raw_dir: Path,
+    database_path: Path,
+    years: set[int] | None = None,
+    fetch: bool = True,
+    progress: Callable[[str], None] | None = None,
+) -> dict:
+    notify = progress or (lambda _message: None)
+    sources = load_sources(sources_path, years)
+    if fetch:
+        notify(f"公式Excelを確認しています（{len(sources)}ファイル）")
+        fetch_sources(sources, raw_dir)
+    return build_prefecture_database(sources, raw_dir, database_path, progress)

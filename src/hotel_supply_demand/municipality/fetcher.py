@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from ..estat_client import _verified_ssl_context
@@ -26,8 +27,33 @@ def _read_manifest(path: Path) -> dict:
     return manifest
 
 
+def _response_header(response: object, name: str) -> str | None:
+    getter = getattr(getattr(response, "headers", None), "get", None)
+    return getter(name) if getter else None
+
+
+def _revision(previous: dict) -> dict:
+    return {
+        key: previous[key]
+        for key in (
+            "stat_inf_id",
+            "provider",
+            "url",
+            "published_on",
+            "retrieved_at",
+            "sha256",
+            "size_bytes",
+        )
+        if key in previous
+    }
+
+
 def fetch_municipality_sources(
-    sources: list[MunicipalitySource], raw_dir: Path, timeout: float = 60
+    sources: list[MunicipalitySource],
+    raw_dir: Path,
+    timeout: float = 60,
+    *,
+    check_remote: bool = False,
 ) -> list[dict]:
     raw_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = raw_dir / "manifest.json"
@@ -41,11 +67,13 @@ def fetch_municipality_sources(
         key = (source.year, source.month, source.release_type)
         destination = raw_dir / source.filename
         previous = entries.get(key)
+        local_digest: str | None = None
         if destination.exists() and previous:
             validate_xlsx(destination)
-            digest = sha256_file(destination)
+            local_digest = sha256_file(destination)
             if (
-                digest == previous.get("sha256")
+                not check_remote
+                and local_digest == previous.get("sha256")
                 and source.url == previous.get("url")
                 and source.stat_inf_id == previous.get("stat_inf_id")
             ):
@@ -54,12 +82,31 @@ def fetch_municipality_sources(
                 results.append({**previous, "status": "skipped"})
                 continue
 
-        request = Request(source.url, headers={"User-Agent": "hotel-supply-demand-etl/0.1"})
+        headers = {"User-Agent": "hotel-supply-demand-etl/0.1"}
+        if (
+            check_remote
+            and previous
+            and source.url == previous.get("url")
+            and source.stat_inf_id == previous.get("stat_inf_id")
+        ):
+            if previous.get("etag"):
+                headers["If-None-Match"] = previous["etag"]
+            if previous.get("last_modified"):
+                headers["If-Modified-Since"] = previous["last_modified"]
+        request = Request(source.url, headers=headers)
         temp_name: str | None = None
         try:
-            with urlopen(
-                request, timeout=timeout, context=_verified_ssl_context()
-            ) as response:
+            try:
+                response_context = urlopen(
+                    request, timeout=timeout, context=_verified_ssl_context()
+                )
+            except HTTPError as exc:
+                if exc.code == 304 and previous:
+                    previous["checked_at"] = datetime.now(UTC).isoformat()
+                    results.append({**previous, "status": "unchanged"})
+                    continue
+                raise
+            with response_context as response:
                 content_type = response.headers.get_content_type()
                 if content_type not in {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -74,10 +121,36 @@ def fetch_municipality_sources(
                     temp_name = temp.name
                     while chunk := response.read(1024 * 1024):
                         temp.write(chunk)
+                etag = _response_header(response, "ETag")
+                last_modified = _response_header(response, "Last-Modified")
             temp_path = Path(temp_name)
             validate_xlsx(temp_path)
             digest = sha256_file(temp_path)
+            checked_at = datetime.now(UTC).isoformat()
+            if (
+                previous
+                and digest == previous.get("sha256")
+                and local_digest == digest
+                and source.url == previous.get("url")
+                and source.stat_inf_id == previous.get("stat_inf_id")
+            ):
+                temp_path.unlink()
+                previous["checked_at"] = checked_at
+                previous["published_on"] = source.published_on
+                if etag:
+                    previous["etag"] = etag
+                if last_modified:
+                    previous["last_modified"] = last_modified
+                results.append({**previous, "status": "unchanged"})
+                continue
             os.replace(temp_path, destination)
+            revisions = list(previous.get("revisions", [])) if previous else []
+            if previous and (
+                digest != previous.get("sha256")
+                or source.url != previous.get("url")
+                or source.stat_inf_id != previous.get("stat_inf_id")
+            ):
+                revisions.append({**_revision(previous), "superseded_at": checked_at})
             entry = {
                 "year": source.year,
                 "month": source.month,
@@ -89,10 +162,17 @@ def fetch_municipality_sources(
                 "period_start": f"{source.year}-{source.month:02d}",
                 "period_end": f"{source.year}-{source.month:02d}",
                 "published_on": source.published_on,
-                "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                "retrieved_at": checked_at,
+                "checked_at": checked_at,
                 "sha256": digest,
                 "size_bytes": destination.stat().st_size,
             }
+            if etag:
+                entry["etag"] = etag
+            if last_modified:
+                entry["last_modified"] = last_modified
+            if revisions:
+                entry["revisions"] = revisions
             entries[key] = entry
             results.append({**entry, "status": "downloaded"})
         except Exception:

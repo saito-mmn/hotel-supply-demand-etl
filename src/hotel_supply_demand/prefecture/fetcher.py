@@ -7,6 +7,7 @@ import os
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from ..estat_client import _verified_ssl_context
@@ -26,7 +27,32 @@ def _read_manifest(path: Path) -> dict:
     return value
 
 
-def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> list[dict]:
+def _response_header(response: object, name: str) -> str | None:
+    getter = getattr(getattr(response, "headers", None), "get", None)
+    return getter(name) if getter else None
+
+
+def _revision(previous: dict) -> dict:
+    return {
+        key: previous[key]
+        for key in (
+            "url",
+            "published_on",
+            "retrieved_at",
+            "sha256",
+            "size_bytes",
+        )
+        if key in previous
+    }
+
+
+def fetch_sources(
+    sources: list[Source],
+    raw_dir: Path,
+    timeout: float = 60,
+    *,
+    check_remote: bool = False,
+) -> list[dict]:
     raw_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = raw_dir / "manifest.json"
     manifest = _read_manifest(manifest_path)
@@ -35,20 +61,41 @@ def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> 
     for source in sources:
         destination = raw_dir / source.filename
         previous = entries.get((source.year, source.release_type))
+        local_digest: str | None = None
         if destination.exists() and previous:
             validate_xlsx(destination)
-            digest = sha256_file(destination)
-            if digest == previous.get("sha256") and source.url == previous.get("url"):
+            local_digest = sha256_file(destination)
+            if (
+                not check_remote
+                and local_digest == previous.get("sha256")
+                and source.url == previous.get("url")
+            ):
                 previous.setdefault("period_start", f"{source.year}-01")
                 previous.setdefault("period_end", f"{source.year}-12")
                 previous["published_on"] = source.published_on
                 results.append({**previous, "status": "skipped"})
                 continue
 
-        request = Request(source.url, headers={"User-Agent": "hotel-supply-demand-etl/0.1"})
+        headers = {"User-Agent": "hotel-supply-demand-etl/0.1"}
+        if check_remote and previous and source.url == previous.get("url"):
+            if previous.get("etag"):
+                headers["If-None-Match"] = previous["etag"]
+            if previous.get("last_modified"):
+                headers["If-Modified-Since"] = previous["last_modified"]
+        request = Request(source.url, headers=headers)
         temp_name: str | None = None
         try:
-            with urlopen(request, timeout=timeout, context=_verified_ssl_context()) as response:
+            try:
+                response_context = urlopen(
+                    request, timeout=timeout, context=_verified_ssl_context()
+                )
+            except HTTPError as exc:
+                if exc.code == 304 and previous:
+                    previous["checked_at"] = datetime.now(UTC).isoformat()
+                    results.append({**previous, "status": "unchanged"})
+                    continue
+                raise
+            with response_context as response:
                 content_type = response.headers.get_content_type()
                 if content_type not in {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -59,13 +106,36 @@ def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> 
                     temp_name = temp.name
                     while chunk := response.read(1024 * 1024):
                         temp.write(chunk)
+                etag = _response_header(response, "ETag")
+                last_modified = _response_header(response, "Last-Modified")
             temp_path = Path(temp_name)
             validate_xlsx(temp_path)
             digest = sha256_file(temp_path)
+            checked_at = datetime.now(UTC).isoformat()
+            if (
+                previous
+                and digest == previous.get("sha256")
+                and local_digest == digest
+                and source.url == previous.get("url")
+            ):
+                temp_path.unlink()
+                previous["checked_at"] = checked_at
+                previous["published_on"] = source.published_on
+                if etag:
+                    previous["etag"] = etag
+                if last_modified:
+                    previous["last_modified"] = last_modified
+                results.append({**previous, "status": "unchanged"})
+                continue
             # A matching hash in another manifest entry does not prove that the
             # current destination contains those bytes. Always install the
             # validated download so the file and the manifest cannot diverge.
             os.replace(temp_path, destination)
+            revisions = list(previous.get("revisions", [])) if previous else []
+            if previous and (
+                digest != previous.get("sha256") or source.url != previous.get("url")
+            ):
+                revisions.append({**_revision(previous), "superseded_at": checked_at})
             entry = {
                 "year": source.year,
                 "release_type": source.release_type,
@@ -74,10 +144,17 @@ def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> 
                 "period_start": f"{source.year}-01",
                 "period_end": f"{source.year}-12",
                 "published_on": source.published_on,
-                "retrieved_at": datetime.now(UTC).isoformat(),
+                "retrieved_at": checked_at,
+                "checked_at": checked_at,
                 "sha256": digest,
                 "size_bytes": destination.stat().st_size,
             }
+            if etag:
+                entry["etag"] = etag
+            if last_modified:
+                entry["last_modified"] = last_modified
+            if revisions:
+                entry["revisions"] = revisions
             entries[(source.year, source.release_type)] = entry
             results.append({**entry, "status": "downloaded"})
         except Exception:
@@ -86,6 +163,8 @@ def fetch_sources(sources: list[Source], raw_dir: Path, timeout: float = 60) -> 
             raise
     manifest["files"] = sorted(entries.values(), key=lambda item: item["year"])
     temp_manifest = manifest_path.with_suffix(".json.tmp")
-    temp_manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temp_manifest.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     os.replace(temp_manifest, manifest_path)
     return results

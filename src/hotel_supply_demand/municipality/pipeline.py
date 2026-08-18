@@ -10,23 +10,17 @@ from ..fetcher import sha256_file, validate_xlsx
 from .database import load_municipality_records
 from .fetcher import fetch_municipality_sources
 from .parser import parse_municipality_workbook
-from .sources import load_municipality_sources
+from .sources import MunicipalitySource, load_municipality_sources
 
 
-def run_municipality_pipeline(
-    sources_path: Path,
+def load_municipality_source_records(
+    sources: list[MunicipalitySource],
     raw_dir: Path,
     database_path: Path,
-    periods: set[tuple[int, int]] | None = None,
-    *,
-    fetch: bool = True,
     progress: Callable[[str], None] | None = None,
 ) -> dict:
+    """Validate downloaded workbooks and transactionally load the selected periods."""
     notify = progress or (lambda _message: None)
-    sources = load_municipality_sources(sources_path, periods)
-    if fetch:
-        notify(f"公式市区町村Excelを確認しています（{len(sources)}ファイル）")
-        fetch_municipality_sources(sources, raw_dir)
     manifest_path = raw_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     indexed = {
@@ -58,3 +52,20 @@ def run_municipality_pipeline(
         },
         "database": str(database_path),
     }
+
+
+def run_municipality_pipeline(
+    sources_path: Path,
+    raw_dir: Path,
+    database_path: Path,
+    periods: set[tuple[int, int]] | None = None,
+    *,
+    fetch: bool = True,
+    progress: Callable[[str], None] | None = None,
+) -> dict:
+    notify = progress or (lambda _message: None)
+    sources = load_municipality_sources(sources_path, periods)
+    if fetch:
+        notify(f"公式市区町村Excelを確認しています（{len(sources)}ファイル）")
+        fetch_municipality_sources(sources, raw_dir)
+    return load_municipality_source_records(sources, raw_dir, database_path, progress)
