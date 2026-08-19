@@ -14,7 +14,17 @@ class WorkbookFormatError(ValueError):
     pass
 
 
-PREFECTURE = re.compile(r"^\s*(\d{2})(.+?[都道府県])\s*$")
+PREFECTURE_NAMES = (
+    "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
+    "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
+    "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
+    "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
+    "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
+    "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
+    "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県",
+)
+PREFECTURE_CODES = {name: code for code, name in enumerate(PREFECTURE_NAMES, 1)}
+PREFECTURE = re.compile(r"^\s*(?:(\d{2})\s*)?(.+?[都道府県])\s*$")
 JAPANESE_DATE = re.compile(r"(平成|令和)(元|\d+)年(\d+)月")
 HEADER_SCAN_ROWS = 15
 
@@ -76,9 +86,10 @@ def _sheet_values(
         match = PREFECTURE.match(str(row[0] or ""))
         if not match:
             continue
-        code = int(match.group(1))
+        name = match.group(2).strip()
+        code = int(match.group(1)) if match.group(1) else PREFECTURE_CODES.get(name, 0)
         if 1 <= code <= 47:
-            result[code] = (match.group(2).strip(), _number(row[column - 1]))
+            result[code] = (name, _number(row[column - 1]))
     if set(result) != set(range(1, 48)):
         missing = sorted(set(range(1, 48)) - set(result))
         raise WorkbookFormatError(f"{title}: prefectures missing: {missing}")
@@ -93,6 +104,12 @@ def _validate_period(workbook, title: str, expected_year: int, expected_month: i
             match = JAPANESE_DATE.search(str(value or ""))
             if match:
                 matches.append(match)
+    # Newer e-Stat original workbooks omit the reporting-period caption from
+    # some/all tables. In that format the sheet name still fixes the month and
+    # validated source metadata fixes the year; validate any caption that is
+    # present, but do not invent one when the official workbook omits it.
+    if not matches:
+        return
     if len(matches) != 1:
         raise WorkbookFormatError(
             f"{title}: expected one reporting period in the first {HEADER_SCAN_ROWS} rows, found {len(matches)}"
@@ -169,9 +186,12 @@ def parse_national_occupancy(
             column = _find_column(workbook, title, header)
             value = None
             for row in sheet.iter_rows(min_row=1, max_row=HEADER_SCAN_ROWS, values_only=True):
-                if JAPANESE_DATE.search(str(row[0] or "")):
-                    value = _number(row[column - 1])
-                    break
+                label = _normalized_text(row[0])
+                if JAPANESE_DATE.search(str(row[0] or "")) or label == "全国":
+                    candidate = _number(row[column - 1])
+                    if candidate is not None:
+                        value = candidate
+                        break
             if value is None:
                 raise WorkbookFormatError(f"{title}: national occupancy rate missing")
             if not 0 <= float(value) <= 100:

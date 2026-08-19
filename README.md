@@ -2,8 +2,8 @@
 
 **[Live Demo：ホテルマーケットレポート](https://saito-mmn.github.io/hotel-supply-demand-etl/)**
 
-> [!NOTE]
-> GitHub PagesのLive Demoは公開済みです。Phase 5・6の更新処理と自動デプロイは実装直後で、コードレビューおよびGitHub Actions上の実運用確認前です。
+[![CI](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml)
+[![Update and deploy](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml)
 
 > [!IMPORTANT]
 > 年確定値による全国・都道府県マクロ分析と、月次第2次速報による市区町村ローカル市場分析を、同じリポジトリ内の独立したデータパイプラインとして扱います。
@@ -17,7 +17,7 @@
 
 | ドメイン | 入力 | 粒度・更新頻度 | 主な用途 |
 |---|---|---|---|
-| `prefecture` | 観光庁の年確定値Excel | 全国・47都道府県／年次 | ホテル市場の地合いと都道府県マクロ環境の把握 |
+| `prefecture` | e-Statの年確定値原Excel | 全国・47都道府県／年次 | ホテル市場の地合いと都道府県マクロ環境の把握 |
 | `municipality` | e-Statの第2次速報Excel | 主な市区町村／月次 | 担保所在地の需要・稼働率時系列の確認 |
 
 市区町村値は全市区町村の完全な統計ではありません。
@@ -61,19 +61,19 @@ API提供範囲を実測した結果、2019・2024・2025年の年確定値は�
 
 ### 自動化範囲の設計判断
 
-年確定値は更新頻度が低く、MVPの対象ファイル数も限定されます。そのため、都道府県側はレビュー可能な`sources.toml`に取得対象URLを明示します。市区町村側も初期版では公式一覧ページを実行時にスクレイピングせず、`municipality_sources.toml`へ提供元、調査年月、公表日、source ID、原ExcelのURLを固定します。いずれも取得時にXLSX形式、SHA-256、取得履歴を検証する方針です。
+採用中の公式ソースは、都道府県を`sources.toml`、市区町村を`municipality_sources.toml`へ明示し、対象期間、公表（更新）日、source ID、原Excel URLをGitで追跡します。更新時はe-Stat公式一覧から新規公表・訂正を検出し、取得したXLSXの形式、SHA-256、取得履歴を検証して設定を更新します。
 
-Phase 5では、手動CLIから公式一覧ページのリンクを検出し、変更がある場合だけ取得からHTML再生成まで実行できるようにしました。Phase 6では通常CIと公式データ更新を分離し、定期・手動更新、品質ゲート、成功時だけのGitHub Pagesデプロイを実装しています。Phase 5・6はコードレビューおよびActions上の実運用確認前です。
+通常CIと公式データ更新を別workflowへ分離しています。Pull Request・pushでは外部サイトに依存しないfixture検証を行い、定期・手動更新では公式データの取得、SQLite・HTML再生成、品質ゲートを通過した場合だけGitHub Pagesへデプロイします。
 
 e-Stat APIの実測結果は [e-Stat API 提供範囲調査](docs/estat-api-audit.md) に記録しています。
 
 ## 現在の状態
 
-都道府県側は、2019～2025年の年確定値Excelについて、取得、manifest・SHA-256による来歴管理、SQLite再生成、全国ダッシュボード、47都道府県Market Sheetまで実装済みです。分析ロジックとレポートは暫定版でありレビュー前です。
+都道府県側は、2019～2025年の年確定値Excelについて、取得、manifest・SHA-256による来歴管理、SQLite再生成、全国ダッシュボード、47都道府県Market Sheetまで実装済みです。
 
-市区町村側は、公式原Excelを固定する`municipality_sources.toml`、取得・manifest・SHA-256管理、月次共通レコードモデル、参考第5・6・8・11・12表を結合するparser、品質検証、SQLiteロード、専用CLI、市区町村一覧と月次Market Sheetを実装しました。都道府県側と比較期間を合わせ、2019年1月～2026年5月の連続89か月、72,688レコード、307自治体を収録しています。原則はe-Statを利用し、e-Statから原Excelリンクを確認できない2026年1月のみ観光庁公式Excelを採用します。parserは都道府県名と市区町村名を分離し、総数・1～9室・10～19室・20室以上を別レコードとして保持します。レポートと集計ロジックは暫定版でありレビュー前です。月別の掲載状況、例外ソース、公式表の値・掲載差異、2026年1月からの層化基準変更は[市区町村第2次速報 ソース収録状況](docs/municipality-source-coverage.md)に記録しています。
+市区町村側は、公式原Excelを固定する`municipality_sources.toml`、取得・manifest・SHA-256管理、月次共通レコードモデル、参考第5・6・8・11・12表を結合するparser、品質検証、SQLiteロード、専用CLI、市区町村一覧と月次Market Sheetを実装しました。都道府県側と比較期間を合わせ、2019年1月～2026年5月の連続89か月、72,688レコード、307自治体を収録しています。原則はe-Statを利用し、e-Statから原Excelリンクを確認できない2026年1月のみ観光庁公式Excelを採用します。parserは都道府県名と市区町村名を分離し、総数・1～9室・10～19室・20室以上を別レコードとして保持します。月別の掲載状況、例外ソース、公式表の値・掲載差異、2026年1月からの層化基準変更は[市区町村第2次速報 ソース収録状況](docs/municipality-source-coverage.md)に記録しています。
 
-Phase 5では、観光庁の年確定値とe-Statの月次第2次速報を公式一覧ページから検出し、変更がある場合だけ一時DBと一時レポートで全工程を検証してから既存成果物を切り替える更新コマンドを追加しました。運用方法と安全側に停止する条件は[公式データ更新手順](docs/update-pipeline.md)を参照してください。
+Phase 5では、e-Statの年確定値と月次第2次速報を公式一覧ページから検出し、変更がある場合だけ一時DBと一時レポートで全工程を検証してから既存成果物を切り替える更新コマンドを追加しました。運用方法と安全側に停止する条件は[公式データ更新手順](docs/update-pipeline.md)を参照してください。
 
 Phase 6では、Pull Request・push時の固定fixture CIと、公式データを確認する定期・手動workflowを分離しました。後者は取得、品質検証、SQLite更新、HTML検証をすべて通過し、人による設定・承認が不要な場合だけPagesへ反映します。運用と失敗時の扱いは[GitHub Pages・自動更新運用](docs/deployment.md)を参照してください。
 
@@ -120,7 +120,7 @@ src/hotel_supply_demand/
 ├── prefecture/
 │   ├── models.py               都道府県月次レコード
 │   ├── sources.py              年確定値ソース設定の読込・検証
-│   ├── discovery.py            観光庁の年確定値リンク検出
+│   ├── discovery.py            e-Stat年確定値の原Excel・更新日検出
 │   ├── fetcher.py              都道府県Excel取得・manifest管理
 │   ├── parser.py               年確定値Excelの正規化
 │   ├── validation.py           都道府県レコードの品質検証

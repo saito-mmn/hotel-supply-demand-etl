@@ -6,7 +6,7 @@ import tomllib
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 
 class SourceConfigurationError(ValueError):
@@ -39,7 +39,15 @@ def load_sources(path: Path, years: set[int] | None = None) -> list[Source]:
         parsed = urlparse(source.url)
         if key in seen:
             raise SourceConfigurationError(f"duplicate source: {key}")
-        if parsed.scheme != "https" or parsed.netloc != "www.mlit.go.jp":
+        trusted_mlit = parsed.netloc == "www.mlit.go.jp"
+        query = parse_qs(parsed.query)
+        trusted_estat = (
+            parsed.netloc == "www.e-stat.go.jp"
+            and parsed.path == "/stat-search/file-download"
+            and len(query.get("statInfId", [])) == 1
+            and query.get("fileKind") == ["0"]
+        )
+        if parsed.scheme != "https" or not (trusted_mlit or trusted_estat):
             raise SourceConfigurationError(f"untrusted source URL: {source.url}")
         if Path(source.filename).name != source.filename or not source.filename.endswith(".xlsx"):
             raise SourceConfigurationError(f"unsafe source filename: {source.filename}")

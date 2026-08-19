@@ -7,12 +7,16 @@ from pathlib import Path
 from typing import Self
 from unittest.mock import patch
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 from hotel_supply_demand.fetcher import FetchError, sha256_file, validate_xlsx
 from hotel_supply_demand.prefecture.database import build_database
 from hotel_supply_demand.prefecture.fetcher import fetch_sources
-from hotel_supply_demand.prefecture.parser import parse_national_occupancy, parse_workbook
+from hotel_supply_demand.prefecture.parser import (
+    PREFECTURE_NAMES,
+    parse_national_occupancy,
+    parse_workbook,
+)
 from hotel_supply_demand.prefecture.sources import Source
 from hotel_supply_demand.prefecture.validation import DataQualityError, validate_records
 
@@ -57,6 +61,27 @@ class FakeDownload(io.BytesIO):
 
 
 class PipelineComponentsTest(unittest.TestCase):
+    def test_parse_estat_workbook_without_codes_or_period_caption(self):
+        with tempfile.TemporaryDirectory() as directory:
+            xlsx = Path(directory) / "estat.xlsx"
+            make_workbook(xlsx)
+            workbook = load_workbook(xlsx)
+            for month in range(1, 13):
+                for table in (1, 4, 8):
+                    sheet = workbook[f"第{table}表({month}月)"]
+                    sheet["A9"] = "全国" if table == 8 else "施設所在地計"
+                    for code, name in enumerate(PREFECTURE_NAMES, 1):
+                        sheet.cell(9 + code, 1, name)
+            workbook.save(xlsx)
+
+            records = parse_workbook(xlsx, 2025)
+            national = parse_national_occupancy(xlsx, 2025)
+
+            self.assertEqual(len(records), 564)
+            self.assertEqual(records[0].prefecture_name, "北海道")
+            self.assertEqual(len(national), 12)
+            self.assertEqual(national[0].occupancy_rate, 55)
+
     def test_fetch_replaces_stale_destination_even_when_download_hash_exists_elsewhere(self):
         with tempfile.TemporaryDirectory() as directory:
             raw_dir = Path(directory)

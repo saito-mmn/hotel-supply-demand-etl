@@ -153,35 +153,34 @@ def _merge_municipality_sources(
 
 def _merge_prefecture_sources(
     configured: list[Source], candidates: list[AnnualFinalCandidate]
-) -> tuple[list[Source], list[dict], list[dict]]:
+) -> tuple[list[Source], list[dict]]:
     merged = {source.year: source for source in configured}
     changes: list[dict] = []
-    configuration_required: list[dict] = []
     for candidate in candidates:
         previous = merged.get(candidate.year)
         if previous is None:
             if candidate.year > min(merged):
-                configuration_required.append(
-                    {
-                        "year": candidate.year,
-                        "url": candidate.url,
-                        "reason": "published_on cannot be inferred safely",
-                    }
+                merged[candidate.year] = Source(
+                    year=candidate.year,
+                    release_type="final",
+                    url=candidate.url,
+                    filename=f"{candidate.year}_final.xlsx",
+                    published_on=candidate.published_on,
                 )
-        elif previous.url != candidate.url:
+                changes.append({"year": candidate.year, "kind": "new"})
+        elif (
+            previous.url != candidate.url
+            or previous.published_on != candidate.published_on
+        ):
             merged[candidate.year] = Source(
                 year=previous.year,
                 release_type=previous.release_type,
                 url=candidate.url,
                 filename=previous.filename,
-                published_on=previous.published_on,
+                published_on=candidate.published_on,
             )
-            changes.append({"year": candidate.year, "kind": "url_changed"})
-    return (
-        sorted(merged.values(), key=lambda item: item.year),
-        changes,
-        configuration_required,
-    )
+            changes.append({"year": candidate.year, "kind": "revised"})
+    return sorted(merged.values(), key=lambda item: item.year), changes
 
 
 def discover_updates(prefecture_sources: Path, municipality_sources: Path) -> dict:
@@ -191,7 +190,7 @@ def discover_updates(prefecture_sources: Path, municipality_sources: Path) -> di
     municipality_page = municipality_source_page(municipality_sources)
     prefecture_discovered = discover_prefecture_sources(prefecture_page)
     municipality_discovered = discover_municipality_sources(municipality_page)
-    _, prefecture_changes, configuration_required = _merge_prefecture_sources(
+    _, prefecture_changes = _merge_prefecture_sources(
         configured_prefecture, prefecture_discovered
     )
     _, municipality_changes, approvals = _merge_municipality_sources(
@@ -201,7 +200,6 @@ def discover_updates(prefecture_sources: Path, municipality_sources: Path) -> di
         "prefecture": {
             "official_sources": len(prefecture_discovered),
             "detected": prefecture_changes,
-            "configuration_required": configuration_required,
         },
         "municipality": {
             "official_sources": len(municipality_discovered),
@@ -315,9 +313,7 @@ def update_prefecture(
     configured = load_sources(sources_path)
     source_page = prefecture_source_page(sources_path)
     candidates = discover_prefecture_sources(source_page)
-    merged, detected, configuration_required = _merge_prefecture_sources(
-        configured, candidates
-    )
+    merged, detected = _merge_prefecture_sources(configured, candidates)
     selected = [source for source in merged if years is None or source.year in years]
     if years:
         missing = years - {source.year for source in selected}
@@ -342,7 +338,6 @@ def update_prefecture(
             "updated": False,
             "checked": len(selected),
             "detected": detected,
-            "configuration_required": configuration_required,
         }
 
     database.parent.mkdir(parents=True, exist_ok=True)
@@ -381,5 +376,4 @@ def update_prefecture(
         "changed_years": sorted(changed_years),
         "build": build_result,
         "report": report_result,
-        "configuration_required": configuration_required,
     }
