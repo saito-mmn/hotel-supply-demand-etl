@@ -10,7 +10,7 @@ from hotel_supply_demand.municipality.sources import (
 
 class MunicipalitySourcesTest(unittest.TestCase):
     def test_load_fixed_estat_source(self):
-        sources = load_municipality_sources(Path("municipality_sources.toml"))
+        sources = load_municipality_sources(Path("config/municipality_sources.toml"))
         periods = [(source.year, source.month) for source in sources]
         self.assertEqual(len(periods), 89)
         self.assertEqual(periods[0], (2019, 1))

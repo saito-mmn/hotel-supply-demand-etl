@@ -23,7 +23,7 @@ class SourcesTest(unittest.TestCase):
             self.assertIn("fileKind=0", sources[0].url)
 
     def test_load_and_filter(self):
-        sources = load_sources(Path("sources.toml"), {2019, 2025})
+        sources = load_sources(Path("config/prefecture_sources.toml"), {2019, 2025})
         self.assertEqual([item.year for item in sources], [2019, 2025])
         self.assertEqual(sources[-1].published_on, "2026-07-06")
 

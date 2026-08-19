@@ -100,10 +100,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "check-updates", help="Discover official prefecture and municipality updates"
     )
     check_updates.add_argument(
-        "--prefecture-sources", type=Path, default=Path("sources.toml")
+        "--prefecture-sources", type=Path, default=Path("config/prefecture_sources.toml")
     )
     check_updates.add_argument(
-        "--municipality-sources", type=Path, default=Path("municipality_sources.toml")
+        "--municipality-sources",
+        type=Path,
+        default=Path("config/municipality_sources.toml"),
     )
 
     update = subparsers.add_parser(
@@ -112,9 +114,13 @@ def _build_parser() -> argparse.ArgumentParser:
     update.add_argument(
         "--domain", choices=("all", "prefecture", "municipality"), default="all"
     )
-    update.add_argument("--prefecture-sources", type=Path, default=Path("sources.toml"))
     update.add_argument(
-        "--municipality-sources", type=Path, default=Path("municipality_sources.toml")
+        "--prefecture-sources", type=Path, default=Path("config/prefecture_sources.toml")
+    )
+    update.add_argument(
+        "--municipality-sources",
+        type=Path,
+        default=Path("config/municipality_sources.toml"),
     )
     update.add_argument("--prefecture-raw-dir", type=Path, default=Path("data/raw"))
     update.add_argument(
@@ -124,7 +130,9 @@ def _build_parser() -> argparse.ArgumentParser:
         "--database", type=Path, default=Path("data/processed/hotel_market.sqlite3")
     )
     update.add_argument("--report-dir", type=Path, default=Path("reports/latest"))
-    update.add_argument("--analysis-config", type=Path, default=Path("analysis.toml"))
+    update.add_argument(
+        "--analysis-config", type=Path, default=Path("config/analysis.toml")
+    )
     update.add_argument("--target-year", type=int)
     update.add_argument("--base-year", type=int, default=2019)
     update.add_argument("--years", type=int, nargs="+")
@@ -134,7 +142,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _add_pipeline_paths(parser: argparse.ArgumentParser, include_database: bool = True) -> None:
-    parser.add_argument("--sources", type=Path, default=Path("sources.toml"))
+    parser.add_argument(
+        "--sources", type=Path, default=Path("config/prefecture_sources.toml")
+    )
     parser.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
     parser.add_argument("--years", type=int, nargs="+")
     if include_database:
@@ -142,7 +152,9 @@ def _add_pipeline_paths(parser: argparse.ArgumentParser, include_database: bool 
 
 
 def _add_report_options(parser: argparse.ArgumentParser, allow_skip: bool = False) -> None:
-    parser.add_argument("--analysis-config", type=Path, default=Path("analysis.toml"))
+    parser.add_argument(
+        "--analysis-config", type=Path, default=Path("config/analysis.toml")
+    )
     parser.add_argument("--report-dir", type=Path, default=Path("reports/latest"))
     parser.add_argument("--target-year", type=int)
     parser.add_argument("--base-year", type=int)
@@ -154,7 +166,7 @@ def _add_municipality_paths(
     parser: argparse.ArgumentParser, include_database: bool = True
 ) -> None:
     parser.add_argument(
-        "--sources", type=Path, default=Path("municipality_sources.toml")
+        "--sources", type=Path, default=Path("config/municipality_sources.toml")
     )
     parser.add_argument("--raw-dir", type=Path, default=Path("data/raw/municipality"))
     parser.add_argument("--periods", nargs="+", metavar="YYYY-MM")

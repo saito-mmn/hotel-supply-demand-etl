@@ -78,8 +78,14 @@ jobs:
       - name: Restore generated reports and adopted source configuration
         run: |
           if [ -d .update-state/reports ]; then cp -R .update-state/reports/. reports/latest/; fi
-          if [ -f .update-state/sources.toml ]; then cp .update-state/sources.toml sources.toml; fi
-          if [ -f .update-state/municipality_sources.toml ]; then cp .update-state/municipality_sources.toml municipality_sources.toml; fi
+          if [ -f .update-state/prefecture_sources.toml ]; then
+            cp .update-state/prefecture_sources.toml config/prefecture_sources.toml
+          elif [ -f .update-state/sources.toml ]; then
+            cp .update-state/sources.toml config/prefecture_sources.toml
+          fi
+          if [ -f .update-state/municipality_sources.toml ]; then
+            cp .update-state/municipality_sources.toml config/municipality_sources.toml
+          fi
 
       - name: Select scheduled update domain
         id: domain
@@ -111,7 +117,7 @@ jobs:
         run: |
           mkdir -p .update-state/reports
           cp -R reports/latest/. .update-state/reports/
-          cp sources.toml municipality_sources.toml .update-state/
+          cp config/prefecture_sources.toml config/municipality_sources.toml .update-state/
 
       - name: Decide whether deployment is needed
         id: decision
@@ -134,8 +140,8 @@ jobs:
           retention-days: 30
           path: |
             update-result.json
-            sources.toml
-            municipality_sources.toml
+            config/prefecture_sources.toml
+            config/municipality_sources.toml
             data/raw/manifest.json
             data/raw/municipality/manifest.json
 

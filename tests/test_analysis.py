@@ -55,7 +55,7 @@ class AnalysisTest(unittest.TestCase):
                 for month in range(1, 13)
             ]
             build_database(database, records, manifest, national)
-            config = load_analysis_config(Path("analysis.toml"))
+            config = load_analysis_config(Path("config/analysis.toml"))
             rows = analyze_database(database, config)
             self.assertEqual(len(rows), 47)
             self.assertAlmostEqual(rows[0]["demand_vs_base_pct"], 99.0)
