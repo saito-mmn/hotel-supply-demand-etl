@@ -14,9 +14,6 @@ GitHub Pages
 
 公開URL：<https://saito-mmn.github.io/hotel-supply-demand-etl/>
 
-> [!NOTE]
-> 手動Pages公開と表示確認は完了しています。公式データの定期更新workflowは実装直後で、コードレビューおよびGitHub Actions上の実行確認前です。
-
 ## workflowの分離
 
 | workflow | 契機 | 外部公式サイト | 役割 |
@@ -52,7 +49,7 @@ workflowはレポートを再生成しません。Gitでレビュー済みの`re
 
 Actionsの実行環境は毎回破棄されるため、前回成功時のRaw Excel、manifest、SQLite、採用済みソース設定、生成レポートをActions Cacheへ保存します。キャッシュは高速化・差分検知の運用状態であり、公開artifactには含めません。更新結果、設定、manifestは30日間の監査artifactとして保存します。
 
-`approval_required`または`configuration_required`が1件でもある場合は、人が公式情報を確認するまで公開を停止します。新規データがなければ正常終了し、不要な再デプロイを行いません。
+`approval_required`など人の確認が必要な結果が1件でもある場合は、公式情報を確認するまで公開を停止します。新規データがなければ正常終了し、不要な再デプロイを行いません。
 
 ## ローカル事前検証
 
@@ -76,4 +73,4 @@ python3 -m http.server 8000 --directory .pages
 
 ## Phase 6との境界
 
-Phase 4の手動デプロイは、レビュー済み生成物の再公開手段として残します。Phase 6の公式更新workflowは、公式ソースの更新検知、Excel取得、SQLite更新、HTML再生成、品質ゲート、成功時のデプロイを担います。Phase 5・6は実装直後であり、コードレビューとActions上の実運用確認後に公開運用へ移行します。
+Phase 4の手動デプロイは、Git管理中の生成物を公式サイトへアクセスせず再公開する復旧手段として残します。Phase 6の公式更新workflowは、公式ソースの更新検知、Excel取得、SQLite更新、HTML再生成、品質ゲート、成功時のデプロイを担います。
