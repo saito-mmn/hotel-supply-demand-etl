@@ -102,7 +102,12 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn("ピーク月 / ボトム月", index_html)
             self.assertIn("宿泊施設数", index_html)
             self.assertIn('id="prefecture-search"', index_html)
+            self.assertIn('id="prefecture-export"', index_html)
             self.assertIn('id="prefecture-table"', index_html)
+            self.assertIn('class="scroll prefecture-scroll"', index_html)
+            self.assertIn("#prefecture-table thead{position:sticky", index_html)
+            self.assertIn("#prefecture-table tbody td:first-child", index_html)
+            self.assertIn("prefecture-hotel-market-2025.csv", index_html)
             self.assertNotIn('class="bar-cell', index_html)
             self.assertIn('class="numeric" data-sort="10.1010101010101">10.1%', index_html)
             self.assertIn('class="numeric td-diff change-negative" data-sort="-10.0">-10.0pt', index_html)
@@ -110,6 +115,10 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn('>+10.0%</td>', index_html)
             self.assertIn("標準偏差（σ） ÷ 年間平均客室稼働率（μ）", index_html)
             self.assertIn("最高値（ピーク月）と最低値（ボトム月）", index_html)
+            self.assertLess(
+                index_html.index("標準偏差（σ） ÷ 年間平均客室稼働率（μ）"),
+                index_html.index('id="prefecture-search"'),
+            )
             self.assertIn("全国の利用客室数 ÷ 全国の総客室数", index_html)
             self.assertIn("都道府県別稼働率の単純平均ではありません", index_html)
             self.assertIn("2025年 月次全国値の平均", index_html)

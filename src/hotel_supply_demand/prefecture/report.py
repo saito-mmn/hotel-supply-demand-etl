@@ -88,8 +88,9 @@ a{{color:#075985}}.scroll{{overflow-x:auto}}
 .market-kpis{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}}.metric-detail{{font-size:.82rem;color:var(--muted);margin-top:6px}}.card-note{{font-size:.72rem;color:var(--muted);margin-top:8px}}
 .demand-charts{{display:grid;grid-template-columns:1fr;gap:24px}}.chart-box{{min-width:0}}.chart-box h3{{margin:.1rem 0 .75rem;font-size:1rem}}
 .numeric{{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}}.range-value{{font-weight:700;color:#9a3412}}.month-pair{{text-align:center;white-space:nowrap}}
-.table-tools{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}}.table-search{{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:right;cursor:pointer}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}.th-seasonality{{background:#f0fdf4;border-top:3px solid #16a34a}}.th-diff,.td-diff{{background:#f8fafc;border-left:1px dashed #94a3b8}}.change-positive{{color:#047857;font-weight:700}}.change-negative{{color:#b45309;font-weight:700}}.change-flat{{color:#64748b;font-weight:700}}
-@media(min-width:768px){{.market-kpis{{grid-template-columns:repeat(4,minmax(0,1fr))}}.demand-charts{{grid-template-columns:repeat(2,minmax(0,1fr))}}}}@media(max-width:760px){{.grid-2{{grid-template-columns:1fr}}}}
+.table-tools{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap}}.table-actions{{display:flex;align-items:center;gap:12px;flex-wrap:wrap}}.table-search{{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}}.export-button{{border:1px solid #0e7490;border-radius:7px;padding:9px 12px;background:#fff;color:#0e5f76;font:inherit;font-weight:700;cursor:pointer}}.export-button:hover{{background:#ecfeff}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:right;cursor:pointer}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}.th-seasonality{{background:#f0fdf4;border-top:3px solid #16a34a}}.th-diff,.td-diff{{background:#f8fafc;border-left:1px dashed #94a3b8}}.change-positive{{color:#047857;font-weight:700}}.change-negative{{color:#b45309;font-weight:700}}.change-flat{{color:#64748b;font-weight:700}}
+.prefecture-scroll{{position:relative}}#prefecture-table thead{{position:sticky;top:0;z-index:4}}#prefecture-table th:first-child,#prefecture-table td:first-child{{position:sticky;left:0;min-width:7.5rem;box-shadow:2px 0 0 var(--line)}}#prefecture-table thead th:first-child{{z-index:6;background:#eaf0f5}}#prefecture-table tbody td:first-child{{z-index:2;background:var(--paper)}}
+@media(min-width:768px){{.market-kpis{{grid-template-columns:repeat(4,minmax(0,1fr))}}.demand-charts{{grid-template-columns:repeat(2,minmax(0,1fr))}}.prefecture-scroll{{max-height:70vh;overflow:auto}}}}@media(max-width:760px){{.grid-2{{grid-template-columns:1fr}}.table-tools{{align-items:stretch}}.table-search{{width:100%}}}}
 @media print{{body{{background:#fff}}main{{max-width:none}}.panel,.card{{break-inside:avoid}}}}
 </style></head><body><main>{body}</main></body></html>"""
 
@@ -397,8 +398,8 @@ def _prefecture_table(rows: list[dict]) -> str:
         for index, label, css_class in second_row
     )
     group_headers = '''<tr><th rowspan="2">都道府県</th><th colspan="6" class="th-group th-supply-demand">需給</th><th colspan="2" class="th-group th-inbound">インバウンド</th><th colspan="3" class="th-group th-seasonality">季節変動</th></tr>'''
-    return f'''<div class="table-tools"><input id="prefecture-search" class="table-search" type="search" placeholder="都道府県名で検索" aria-label="都道府県名で検索"><span id="prefecture-count" class="sub">{len(rows)}県</span></div>
-<div class="scroll"><table id="prefecture-table"><thead>{group_headers}<tr>{detail_headers}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'''
+    return f'''<div class="table-tools"><input id="prefecture-search" class="table-search" type="search" placeholder="都道府県名で検索" aria-label="都道府県名で検索"><div class="table-actions"><span id="prefecture-count" class="sub">{len(rows)}県</span><button id="prefecture-export" class="export-button" type="button">表示中データをCSVダウンロード</button></div></div>
+<div class="scroll prefecture-scroll" tabindex="0" aria-label="都道府県別指標テーブル"><table id="prefecture-table"><thead>{group_headers}<tr>{detail_headers}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'''
 
 
 def _index_html(
@@ -417,9 +418,26 @@ def _index_html(
     prefecture_table = _prefecture_table(rows)
     body = f"""<h1>都道府県別ホテルマーケットレポート</h1><p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村別ホテルマーケットレポート →</a></p>
 <section class="panel axis"><h2>1. 全国のホテル市況</h2><p class="question">月次の全国客室稼働率は、全国の利用客室数 ÷ 全国の総客室数で算出された観光庁公表値です。都道府県別稼働率の単純平均ではありません。KPIは月次公表値12か月の単純平均です。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 月次全国値の平均</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
-<section class="panel axis"><h2>2. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p>{prefecture_table}<p class="chart-note">※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）<br>※ 繁閑レンジ ＝ 年間における月次客室稼働率の最高値（ピーク月）と最低値（ボトム月）のポイント差（pt）</p></section>
+<section class="panel axis"><h2>2. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p><p class="chart-note">※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）<br>※ 繁閑レンジ ＝ 年間における月次客室稼働率の最高値（ピーク月）と最低値（ボトム月）のポイント差（pt）</p>{prefecture_table}</section>
 <script>
-(()=>{{const table=document.querySelector('#prefecture-table');if(!table)return;const body=table.tBodies[0],search=document.querySelector('#prefecture-search'),count=document.querySelector('#prefecture-count');let direction=1,column=-1;const visibleRows=()=>[...body.rows].filter(row=>!row.hidden);const update=()=>{{const query=search.value.trim().toLocaleLowerCase('ja');[...body.rows].forEach(row=>{{row.hidden=!row.cells[0].textContent.toLocaleLowerCase('ja').includes(query)}});count.textContent=`${{visibleRows().length}}県`;}};search.addEventListener('input',update);table.querySelectorAll('button[data-column]').forEach(button=>button.addEventListener('click',()=>{{const next=Number(button.dataset.column);direction=column===next?-direction:1;column=next;table.querySelectorAll('button[data-column]').forEach(item=>item.removeAttribute('data-direction'));button.dataset.direction=direction===1?'asc':'desc';const rows=[...body.rows];rows.sort((a,b)=>{{const av=a.cells[column].dataset.sort,bv=b.cells[column].dataset.sort,an=Number(av),bn=Number(bv);const result=Number.isNaN(an)||Number.isNaN(bn)?av.localeCompare(bv,'ja'):an-bn;return result*direction;}});rows.forEach(row=>body.appendChild(row));}}));}})();
+(()=>{{
+const table=document.querySelector('#prefecture-table');
+if(!table)return;
+const body=table.tBodies[0],search=document.querySelector('#prefecture-search'),count=document.querySelector('#prefecture-count'),exportButton=document.querySelector('#prefecture-export');
+let direction=1,column=-1;
+const visibleRows=()=>[...body.rows].filter(row=>!row.hidden);
+const update=()=>{{const query=search.value.trim().toLocaleLowerCase('ja');[...body.rows].forEach(row=>{{row.hidden=!row.cells[0].textContent.toLocaleLowerCase('ja').includes(query)}});count.textContent=`${{visibleRows().length}}県`;}};
+search.addEventListener('input',update);
+table.querySelectorAll('button[data-column]').forEach(button=>button.addEventListener('click',()=>{{const next=Number(button.dataset.column);direction=column===next?-direction:1;column=next;table.querySelectorAll('button[data-column]').forEach(item=>item.removeAttribute('data-direction'));button.dataset.direction=direction===1?'asc':'desc';const rows=[...body.rows];rows.sort((a,b)=>{{const av=a.cells[column].dataset.sort,bv=b.cells[column].dataset.sort,an=Number(av),bn=Number(bv);const result=Number.isNaN(an)||Number.isNaN(bn)?av.localeCompare(bv,'ja'):an-bn;return result*direction;}});rows.forEach(row=>body.appendChild(row));}}));
+exportButton.addEventListener('click',()=>{{
+const headers=['都道府県',...[...table.querySelectorAll('thead tr:last-child button')].map(button=>button.textContent.trim())];
+const data=visibleRows().map(row=>[...row.cells].map(cell=>cell.textContent.trim()));
+const escapeCsv=value=>'"'+value.replaceAll('"','""')+'"';
+const csv=[headers,...data].map(row=>row.map(escapeCsv).join(',')).join('\\r\\n');
+const url=URL.createObjectURL(new Blob(['\\ufeff',csv],{{type:'text/csv;charset=utf-8'}}));
+const link=document.createElement('a');link.href=url;link.download='prefecture-hotel-market-{config.target_year}.csv';link.click();URL.revokeObjectURL(url);
+}});
+}})();
 </script>"""
     return _document("都道府県別ホテルマーケットレポート", body)
 
