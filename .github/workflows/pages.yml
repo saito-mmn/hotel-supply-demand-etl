@@ -1,6 +1,13 @@
 name: Deploy static demo to GitHub Pages
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "reports/latest/**"
+      - "scripts/prepare_pages.py"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
