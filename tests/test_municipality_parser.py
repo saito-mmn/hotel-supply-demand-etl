@@ -316,6 +316,11 @@ filename = "2026-05_second_preliminary.xlsx"
                 index_html.index("外国人比率"),
             )
             self.assertIn("if(aMissing!==bMissing)return aMissing?1:-1", index_html)
+            self.assertIn('id="municipality-export"', index_html)
+            self.assertIn('class="scroll municipality-scroll"', index_html)
+            self.assertIn("#markets thead{position:sticky", index_html)
+            self.assertIn("#markets tbody td:first-child", index_html)
+            self.assertIn("municipality-hotel-market.csv", index_html)
             self.assertNotIn("レビュー前・暫定版", index_html)
             detail_html = (reports / "market-sheets" / "1.html").read_text(
                 encoding="utf-8"
