@@ -18,6 +18,7 @@ from hotel_supply_demand.municipality.pipeline import run_municipality_pipeline
 from hotel_supply_demand.municipality.report import (
     _annual_demand_chart,
     _annual_facilities_chart,
+    _occupancy_axis_max,
     _seasonality_chart,
     generate_municipality_reports,
 )
@@ -365,6 +366,7 @@ filename = "2026-05_second_preliminary.xlsx"
         facilities = _annual_facilities_chart(history, [2019, 2023, 2024, 2025])
         self.assertIn('aria-label="年次需要構造と外国人比率"', demand)
         self.assertIn("2025年 外国人", demand)
+        self.assertIn('fill="#0369a1">100%</text>', demand)
         self.assertIn('aria-label="調査対象施設数の年次推移"', facilities)
         self.assertIn("2019年12月 8施設", facilities)
 
@@ -385,6 +387,30 @@ filename = "2026-05_second_preliminary.xlsx"
         self.assertIn(">12月<", chart)
         self.assertIn(">2025年<", chart)
         self.assertEqual(chart.count("<polyline"), 2)
+
+    def test_seasonality_chart_accepts_a_common_percentage_domain(self):
+        history = [
+            {"year": 2025, "month": month, "occupancy_rate": 40.0 + month}
+            for month in range(1, 13)
+        ]
+        chart = _seasonality_chart(
+            history,
+            "occupancy_rate",
+            "%",
+            [2025],
+            y_domain=(0.0, 100.0),
+        )
+        for tick in ("0.0%", "25.0%", "50.0%", "75.0%", "100.0%"):
+            self.assertIn(f">{tick}</text>", chart)
+
+    def test_municipality_occupancy_axis_is_common_and_extends_above_100(self):
+        histories = {
+            1: [{"occupancy_rate": 95.8}],
+            2: [{"occupancy_rate": None}],
+        }
+        self.assertEqual(_occupancy_axis_max(histories), 100.0)
+        histories[2].append({"occupancy_rate": 104.3})
+        self.assertEqual(_occupancy_axis_max(histories), 110.0)
 
     def test_seasonality_chart_renders_2019_as_reference_line(self):
         history = [

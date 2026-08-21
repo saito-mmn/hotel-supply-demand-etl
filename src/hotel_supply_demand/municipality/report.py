@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -65,12 +66,25 @@ def _load(database: Path) -> tuple[list[dict], dict[int, list[dict]]]:
     return latest, histories
 
 
+def _occupancy_axis_max(histories: dict[int, list[dict]]) -> float:
+    """Return one common occupancy-axis ceiling for every municipality sheet."""
+    values = [
+        float(row["occupancy_rate"])
+        for history in histories.values()
+        for row in history
+        if row["occupancy_rate"] is not None
+    ]
+    observed_max = max(values, default=100.0)
+    return max(100.0, math.ceil(observed_max / 10.0) * 10.0)
+
+
 def _seasonality_chart(
     history: list[dict],
     field: str,
     suffix: str,
     years: list[int],
     reference_year: int | None = None,
+    y_domain: tuple[float, float] | None = None,
 ) -> str:
     """Overlay monthly observations by calendar month for multi-year comparison."""
     series = {
@@ -88,9 +102,12 @@ def _seasonality_chart(
     width, height = 760, 360
     left, right, top, bottom = 64, 24, 52, 52
     plot_width, plot_height = width - left - right, height - top - bottom
-    low, high = min(numeric), max(numeric)
-    padding = (high - low) * 0.15 or max(high * 0.08, 1)
-    low, high = max(0, low - padding), high + padding
+    if y_domain is None:
+        low, high = min(numeric), max(numeric)
+        padding = (high - low) * 0.15 or max(high * 0.08, 1)
+        low, high = max(0, low - padding), high + padding
+    else:
+        low, high = y_domain
     comparison_colors = ["#38bdf8", "#8b5cf6", "#0f766e"]
     comparison_years = [year for year in years if year != reference_year]
 
@@ -199,7 +216,8 @@ def _annual_demand_chart(history: list[dict], years: list[int]) -> str:
     left, right, top, bottom = 72, 62, 48, 52
     plot_width, plot_height = width - left - right, height - top - bottom
     maximum = max(japanese + foreign for _, japanese, foreign, _ in annual) * 1.15 or 1
-    share_max = max(60.0, max(share for *_, share in annual) * 1.15)
+    # A fixed percentage scale keeps foreign-share charts comparable across municipalities.
+    share_max = 100.0
 
     def x(index: int) -> float:
         return left + (index + 0.5) / len(annual) * plot_width
@@ -349,7 +367,7 @@ def _annual_facilities_chart(history: list[dict], years: list[int]) -> str:
     )
 
 
-def _sheet(history: list[dict], base_year: int) -> str:
+def _sheet(history: list[dict], base_year: int, occupancy_axis_max: float) -> str:
     latest = history[-1]
     period_label = f'{latest["year"]}年{latest["month"]}月単月（最新掲載月）'
     foreign_share = (latest["foreign_guests"] / latest["total_guests"] * 100) if latest["total_guests"] else None
@@ -361,7 +379,7 @@ def _sheet(history: list[dict], base_year: int) -> str:
     body = f"""<p><a href="../index.html">← 市区町村一覧</a></p><h1>{html.escape(latest['prefecture_name'] + latest['municipality_name'])} Market Sheet</h1>
 <p class="sub">{latest['year']}年{latest['month']}月 第2次速報｜データ公表日 {published}｜source ID {html.escape(latest['stat_inf_id'])}</p><p class="note">収録期間 {latest['coverage_start']}～{latest['coverage_end']}／掲載 {latest['coverage_months']}観測月</p>
 <div class="cards"><div class="card"><div class="sub">客室稼働率</div><div class="metric">{_fmt(latest['occupancy_rate'], '%')}</div><span class="period-badge">{period_label}</span></div><div class="card"><div class="sub">延べ宿泊者数</div><div class="metric">{_fmt(latest['total_guests'], '人')}</div><span class="period-badge">{period_label}</span></div><div class="card"><div class="sub">外国人延べ宿泊者比率</div><div class="metric">{_fmt(foreign_share, '%')}</div><span class="period-badge">{period_label}</span></div><div class="card"><div class="sub">調査対象施設数</div><div class="metric">{_fmt(latest['population_facilities'], '施設')}</div><div class="metric-detail">回答施設数 {_fmt(latest['responding_facilities'], '施設')}</div><span class="period-badge">{period_label}</span></div></div>
-<section class="panel"><h2>1. 客室稼働率</h2><p class="note">直近3年を1月〜12月の同じ軸に重ね、比較基準の{base_year}年（破線）と比較します。公式表に掲載されなかった月は線を途切れさせます。</p>{_seasonality_chart(history, 'occupancy_rate', '%', occupancy_years, reference_year=base_year)}</section>
+<section class="panel"><h2>1. 客室稼働率</h2><p class="note">直近3年を1月〜12月の同じ軸に重ね、比較基準の{base_year}年（破線）と比較します。公式表に掲載されなかった月は線を途切れさせます。</p>{_seasonality_chart(history, 'occupancy_rate', '%', occupancy_years, reference_year=base_year, y_domain=(0.0, occupancy_axis_max))}</section>
 <section class="panel"><h2>2. 延べ宿泊者数（需要）</h2><p class="note">直近3年の月次需要を季節ごとに比較し、比較可能な場合は年次での日本人・外国人需要構造も確認します。</p><div class="grid-2"><div><h3>総延べ宿泊者数・月次比較（直近3年）</h3>{_seasonality_chart(history, 'total_guests', '人', recent_years)}</div><div><h3>年次需要構造と外国人比率（直近3年）</h3>{_annual_demand_chart(history, recent_years)}</div></div></section>
 <section class="panel"><h2>3. 宿泊施設数（供給）</h2><p class="note">{base_year}年および直近3年の各年12月時点を比較します。</p>{_annual_facilities_chart(history, facility_years)}<p class="note">調査対象施設数であり、客室数や実際の供給能力を示すものではありません。</p></section>
 <section class="panel"><h2>4. 利用上の注意</h2><p>掲載された主な市区町村の実数であり、未回収施設を含む全市区町村の推計値ではありません。</p></section>"""
@@ -405,12 +423,14 @@ def generate_municipality_reports(
     latest, histories = _load(database)
     if not latest:
         raise ValueError("municipality market data is empty")
+    occupancy_axis_max = _occupancy_axis_max(histories)
     sheets = output_dir / "market-sheets"
     sheets.mkdir(parents=True, exist_ok=True)
     (output_dir / "index.html").write_text(_index(latest), encoding="utf-8")
     for row in latest:
         (sheets / f'{row["municipality_id"]}.html').write_text(
-            _sheet(histories[row["municipality_id"]], base_year), encoding="utf-8"
+            _sheet(histories[row["municipality_id"]], base_year, occupancy_axis_max),
+            encoding="utf-8",
         )
     metadata = {"municipalities": len(latest), "base_year": base_year, "periods": sorted({f'{row["year"]}-{row["month"]:02d}' for history in histories.values() for row in history})}
     (output_dir / "report-metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

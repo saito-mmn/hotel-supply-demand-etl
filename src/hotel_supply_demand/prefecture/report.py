@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import html
 import json
-import math
 import os
 import sqlite3
 from datetime import date
@@ -215,7 +214,8 @@ def _annual_demand_structure_chart(history: dict[int, list[dict]], recent_years:
         total = japanese + foreign
         annual.append((year, japanese, foreign, foreign / total * 100 if total else 0))
     maximum = max(japanese + foreign for _, japanese, foreign, _ in annual) * 1.10
-    share_max = min(100.0, max(10.0, math.ceil(max(share for *_, share in annual) / 10) * 10))
+    # A fixed percentage scale keeps foreign-share charts comparable across prefectures.
+    share_max = 100.0
 
     def x(index: int) -> float:
         return left + (index + 0.5) / 3 * plot_width

@@ -158,6 +158,7 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn("対象年：2025年確定値", detail_html)
             self.assertIn(">0.0%</text>", detail_html)
             self.assertIn(">100.0%</text>", detail_html)
+            self.assertIn('fill="#0369a1">100%</text>', detail_html)
             self.assertNotIn("利用上の注意", detail_html)
             self.assertIn("宿泊施設数（2025年12月）", detail_html)
             self.assertIn("直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化", detail_html)
