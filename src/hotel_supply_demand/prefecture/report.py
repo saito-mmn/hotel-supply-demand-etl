@@ -86,6 +86,7 @@ a{{color:#075985}}.scroll{{overflow-x:auto}}
 .axis{{margin-top:24px}}.axis h2{{margin:0}}.question{{color:var(--muted);margin:.25rem 0 1rem}}
 .grid-2{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}.rank{{font-weight:700;color:var(--muted);width:2rem}}.chart{{width:100%;height:auto;display:block}}.chart-note{{font-size:.82rem;color:var(--muted)}}
 .market-kpis{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}}.metric-detail{{font-size:.82rem;color:var(--muted);margin-top:6px}}.card-note{{font-size:.72rem;color:var(--muted);margin-top:8px}}
+.fact-summary{{margin:0 0 24px}}.fact-summary h2{{font-size:1.05rem;margin:0 0 8px}}.fact-summary ul{{margin:0;padding-left:1.3rem}}.fact-summary li+li{{margin-top:6px}}
 .demand-charts{{display:grid;grid-template-columns:1fr;gap:24px}}.chart-box{{min-width:0}}.chart-box h3{{margin:.1rem 0 .75rem;font-size:1rem}}
 .numeric{{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}}.range-value{{font-weight:700;color:#9a3412}}.month-pair{{text-align:center;white-space:nowrap}}
 .table-tools{{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap}}.table-actions{{display:flex;align-items:center;gap:12px;flex-wrap:wrap}}.table-search{{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}}.export-button{{border:1px solid #0e7490;border-radius:7px;padding:9px 12px;background:#fff;color:#0e5f76;font:inherit;font-weight:700;cursor:pointer}}.export-button:hover{{background:#ecfeff}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:right;cursor:pointer}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}.th-seasonality{{background:#f0fdf4;border-top:3px solid #16a34a}}.th-diff,.td-diff{{background:#f8fafc;border-left:1px dashed #94a3b8}}.change-positive{{color:#047857;font-weight:700}}.change-negative{{color:#b45309;font-weight:700}}.change-flat{{color:#64748b;font-weight:700}}
@@ -311,13 +312,20 @@ def _annual_facilities_chart(history: dict[int, list[dict]], years: list[int]) -
     )
 
 
-def _market_sheet(row: dict, published_on: str, history: dict[int, list[dict]], config: AnalysisConfig) -> str:
+def _market_sheet(
+    row: dict,
+    published_on: str,
+    history: dict[int, list[dict]],
+    config: AnalysisConfig,
+    national_average: float,
+) -> str:
     recent_years = [config.target_year - 2, config.target_year - 1, config.target_year]
     comparison_years = [config.base_year, *recent_years]
     occupancy = {year: [item["occupancy_rate"] for item in history[year]] for year in [config.base_year, *recent_years]}
     current_facilities = int(history[config.target_year][config.target_month - 1]["facilities"])
     previous_facilities = int(history[config.target_year - 1][config.target_month - 1]["facilities"])
     base_facilities = int(history[config.base_year][config.target_month - 1]["facilities"])
+    occupancy_vs_national = row["average_occupancy_rate"] - national_average
     card_html = "".join(
         [
             f'<div class="card"><div class="sub">LTM平均客室稼働率</div><div class="metric">{_fmt(row["average_occupancy_rate"], "%")}</div><div class="metric-detail">前年差: {row["occupancy_ltm_yoy_pp"]:+.1f}pt ／ {config.base_year}年差: {row["occupancy_vs_base_pp"]:+.1f}pt</div></div>',
@@ -326,9 +334,27 @@ def _market_sheet(row: dict, published_on: str, history: dict[int, list[dict]], 
             f'<div class="card"><div class="sub">宿泊施設数（{config.target_year}年{config.target_month}月）</div><div class="metric">{current_facilities:,}施設</div><div class="metric-detail">前年差: {current_facilities-previous_facilities:+,}施設 ／ {config.base_year}年差: {current_facilities-base_facilities:+,}施設</div><div class="card-note">客室数ではなく、調査対象の施設数です。</div></div>',
         ]
     )
+    fact_summary = (
+        '<section class="panel fact-summary" aria-labelledby="fact-summary-title">'
+        '<h2 id="fact-summary-title">比較サマリー</h2><ul>'
+        f'<li>{config.target_year}年のLTM平均客室稼働率は'
+        f'{row["average_occupancy_rate"]:.1f}%。前年差は'
+        f'{row["occupancy_ltm_yoy_pp"]:+.1f}pt、{config.base_year}年差は'
+        f'{row["occupancy_vs_base_pp"]:+.1f}pt、全国平均との差は'
+        f'{occupancy_vs_national:+.1f}ptです。</li>'
+        f'<li>LTM延べ宿泊者数は{int(row["total_guests"]):,}人泊。前年比は'
+        f'{row["demand_ltm_yoy_pct"]:+.1f}%、{config.base_year}年水準の'
+        f'{row["demand_vs_base_pct"]:.1f}%です。</li>'
+        f'<li>外国人延べ宿泊者比率は{row["foreign_share_pct"]:.1f}%で、前年差は'
+        f'{row["foreign_share_yoy_pp"]:+.1f}pt。{config.target_year}年'
+        f'{config.target_month}月の調査対象施設数は{current_facilities:,}施設で、'
+        f'前年比は{row["facility_yoy_pct"]:+.1f}%です。</li>'
+        '</ul></section>'
+    )
     body = f"""<a href="../index.html">← 全国ダッシュボード</a><h1>{html.escape(row['prefecture_name'])} Market Sheet</h1>
 <p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p>
 <div class="market-kpis">{card_html}</div>
+{fact_summary}
 <section class="panel axis"><h2>1. 客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の{config.base_year}年と比較します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}</section>
 <section class="panel axis"><h2>2. 延べ宿泊者数（需要）</h2><p class="question">直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化を確認します。</p>
 <div class="demand-charts">
@@ -449,13 +475,20 @@ def generate_reports(database: Path, output_dir: Path, config: AnalysisConfig) -
     sheets = output_dir / "market-sheets"
     sheets.mkdir(exist_ok=True)
     published_on = _source_published_on(database, config)
+    national_average = sum(national[config.target_year]) / 12
     _write_csv(output_dir / "prefecture-market.csv", rows)
     (output_dir / "index.html").write_text(
         _index_html(rows, config, published_on, national), encoding="utf-8"
     )
     for row in rows:
         (sheets / f"{row['prefecture_code']:02}.html").write_text(
-            _market_sheet(row, published_on, histories[row["prefecture_code"]], config),
+            _market_sheet(
+                row,
+                published_on,
+                histories[row["prefecture_code"]],
+                config,
+                national_average,
+            ),
             encoding="utf-8",
         )
     metadata = {

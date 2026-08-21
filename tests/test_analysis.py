@@ -137,6 +137,24 @@ class AnalysisTest(unittest.TestCase):
             positions = [detail_html.index(heading) for heading in detail_headings]
             self.assertEqual(positions, sorted(positions))
             self.assertIn("LTM総延べ宿泊者数", detail_html)
+            self.assertIn('id="fact-summary-title">比較サマリー', detail_html)
+            self.assertIn(
+                "LTM平均客室稼働率は50.0%。前年差は-10.0pt、"
+                "2019年差は-10.0pt、全国平均との差は+0.0ptです。",
+                detail_html,
+            )
+            self.assertIn(
+                "LTM延べ宿泊者数は11,880人泊。前年比は-10.0%、"
+                "2019年水準の99.0%です。",
+                detail_html,
+            )
+            self.assertIn(
+                "外国人延べ宿泊者比率は10.1%で、前年差は+1.0pt。"
+                "2025年12月の調査対象施設数は110施設で、前年比は+10.0%です。",
+                detail_html,
+            )
+            for interpretation in ("好調", "不調", "有望", "供給過剰"):
+                self.assertNotIn(interpretation, detail_html)
             self.assertIn("対象年：2025年確定値", detail_html)
             self.assertIn(">0.0%</text>", detail_html)
             self.assertIn(">100.0%</text>", detail_html)
