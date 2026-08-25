@@ -1,0 +1,803 @@
+source_page = "https://www.e-stat.go.jp/stat-search/files?page=1&layout=dataset&toukei=00601020&tstat=000001079597&cycle=1&tclass1val=0"
+
+[[municipality_sources]]
+year = 2019
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000031958615"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958615&fileKind=0"
+filename = "2019-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000031958616"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958616&fileKind=0"
+filename = "2019-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000031958617"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958617&fileKind=0"
+filename = "2019-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000031958618"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958618&fileKind=0"
+filename = "2019-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000031958619"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958619&fileKind=0"
+filename = "2019-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000031958620"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958620&fileKind=0"
+filename = "2019-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000031958621"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958621&fileKind=0"
+filename = "2019-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000031958622"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958622&fileKind=0"
+filename = "2019-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000031958623"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958623&fileKind=0"
+filename = "2019-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000031958624"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958624&fileKind=0"
+filename = "2019-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000031958625"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958625&fileKind=0"
+filename = "2019-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2019
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000031958626"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958626&fileKind=0"
+filename = "2019-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000031958627"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958627&fileKind=0"
+filename = "2020-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000031958628"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958628&fileKind=0"
+filename = "2020-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000031958629"
+published_on = "2020-06-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031958629&fileKind=0"
+filename = "2020-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000031961779"
+published_on = "2020-07-03"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031961779&fileKind=0"
+filename = "2020-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000031969312"
+published_on = "2020-07-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031969312&fileKind=0"
+filename = "2020-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000031977614"
+published_on = "2020-09-01"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031977614&fileKind=0"
+filename = "2020-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000032009350"
+published_on = "2020-10-05"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032009350&fileKind=0"
+filename = "2020-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000032017289"
+published_on = "2020-10-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032017289&fileKind=0"
+filename = "2020-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000032030490"
+published_on = "2020-12-01"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032030490&fileKind=0"
+filename = "2020-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000032040895"
+published_on = "2020-12-25"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032040895&fileKind=0"
+filename = "2020-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000032048474"
+published_on = "2021-01-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032048474&fileKind=0"
+filename = "2020-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2020
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000032061096"
+published_on = "2021-02-26"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032061096&fileKind=0"
+filename = "2020-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000032075545"
+published_on = "2021-03-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032075545&fileKind=0"
+filename = "2021-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000032086249"
+published_on = "2021-04-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032086249&fileKind=0"
+filename = "2021-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000032103722"
+published_on = "2021-06-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032103722&fileKind=0"
+filename = "2021-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000032103628"
+published_on = "2021-06-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032103628&fileKind=0"
+filename = "2021-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000032109972"
+published_on = "2021-07-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032109972&fileKind=0"
+filename = "2021-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000032117693"
+published_on = "2021-09-03"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032117693&fileKind=0"
+filename = "2021-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000032125155"
+published_on = "2021-09-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032125155&fileKind=0"
+filename = "2021-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000032136119"
+published_on = "2021-10-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032136119&fileKind=0"
+filename = "2021-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000032145552"
+published_on = "2021-11-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032145552&fileKind=0"
+filename = "2021-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000032159063"
+published_on = "2021-12-24"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032159063&fileKind=0"
+filename = "2021-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000032166572"
+published_on = "2022-01-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032166572&fileKind=0"
+filename = "2021-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2021
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000032173126"
+published_on = "2022-02-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032173126&fileKind=0"
+filename = "2021-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000032187636"
+published_on = "2022-03-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032187636&fileKind=0"
+filename = "2022-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000032196464"
+published_on = "2022-04-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032196464&fileKind=0"
+filename = "2022-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000040032580"
+published_on = "2022-05-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040032580&fileKind=0"
+filename = "2022-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000032212355"
+published_on = "2022-06-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032212355&fileKind=0"
+filename = "2022-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000032219014"
+published_on = "2022-07-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032219014&fileKind=0"
+filename = "2022-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000032235117"
+published_on = "2022-08-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032235117&fileKind=0"
+filename = "2022-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000032238697"
+published_on = "2022-09-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032238697&fileKind=0"
+filename = "2022-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000032250134"
+published_on = "2022-10-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032250134&fileKind=0"
+filename = "2022-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000032256775"
+published_on = "2022-11-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032256775&fileKind=0"
+filename = "2022-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000032266872"
+published_on = "2022-12-26"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032266872&fileKind=0"
+filename = "2022-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000040010221"
+published_on = "2023-01-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040010221&fileKind=0"
+filename = "2022-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2022
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000040025341"
+published_on = "2023-02-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040025341&fileKind=0"
+filename = "2022-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000040039294"
+published_on = "2023-03-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040039294&fileKind=0"
+filename = "2023-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000040050780"
+published_on = "2023-04-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040050780&fileKind=0"
+filename = "2023-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000040064762"
+published_on = "2023-05-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040064762&fileKind=0"
+filename = "2023-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000040074193"
+published_on = "2023-06-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040074193&fileKind=0"
+filename = "2023-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000040083182"
+published_on = "2023-07-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040083182&fileKind=0"
+filename = "2023-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000040094332"
+published_on = "2023-08-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040094332&fileKind=0"
+filename = "2023-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000040105301"
+published_on = "2023-09-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040105301&fileKind=0"
+filename = "2023-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000040113861"
+published_on = "2023-10-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040113861&fileKind=0"
+filename = "2023-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000040119948"
+published_on = "2023-11-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040119948&fileKind=0"
+filename = "2023-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000040130782"
+published_on = "2023-12-26"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040130782&fileKind=0"
+filename = "2023-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000040139661"
+published_on = "2024-01-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040139661&fileKind=0"
+filename = "2023-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2023
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000040149820"
+published_on = "2024-02-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040149820&fileKind=0"
+filename = "2023-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000040165115"
+published_on = "2024-03-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040165115&fileKind=0"
+filename = "2024-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000040179501"
+published_on = "2024-04-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040179501&fileKind=0"
+filename = "2024-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000040185342"
+published_on = "2024-05-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040185342&fileKind=0"
+filename = "2024-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000040190832"
+published_on = "2024-06-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040190832&fileKind=0"
+filename = "2024-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000040197424"
+published_on = "2024-07-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040197424&fileKind=0"
+filename = "2024-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000040204528"
+published_on = "2024-08-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040204528&fileKind=0"
+filename = "2024-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000040213349"
+published_on = "2024-09-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040213349&fileKind=0"
+filename = "2024-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000040221799"
+published_on = "2024-10-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040221799&fileKind=0"
+filename = "2024-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000040226202"
+published_on = "2024-11-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040226202&fileKind=0"
+filename = "2024-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000040237341"
+published_on = "2024-12-26"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040237341&fileKind=0"
+filename = "2024-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000040247441"
+published_on = "2025-01-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040247441&fileKind=0"
+filename = "2024-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2024
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000040252187"
+published_on = "2025-02-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040252187&fileKind=0"
+filename = "2024-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 1
+release_type = "second_preliminary"
+stat_inf_id = "000040266902"
+published_on = "2025-03-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040266902&fileKind=0"
+filename = "2025-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000040272486"
+published_on = "2025-04-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040272486&fileKind=0"
+filename = "2025-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000040281658"
+published_on = "2025-05-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040281658&fileKind=0"
+filename = "2025-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000040288347"
+published_on = "2025-06-27"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040288347&fileKind=0"
+filename = "2025-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000040300537"
+published_on = "2025-07-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040300537&fileKind=0"
+filename = "2025-05_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 6
+release_type = "second_preliminary"
+stat_inf_id = "000040312826"
+published_on = "2025-08-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040312826&fileKind=0"
+filename = "2025-06_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 7
+release_type = "second_preliminary"
+stat_inf_id = "000040326405"
+published_on = "2025-09-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040326405&fileKind=0"
+filename = "2025-07_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 8
+release_type = "second_preliminary"
+stat_inf_id = "000040365913"
+published_on = "2025-10-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040365913&fileKind=0"
+filename = "2025-08_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 9
+release_type = "second_preliminary"
+stat_inf_id = "000040372186"
+published_on = "2025-11-28"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040372186&fileKind=0"
+filename = "2025-09_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 10
+release_type = "second_preliminary"
+stat_inf_id = "000040389404"
+published_on = "2025-12-25"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040389404&fileKind=0"
+filename = "2025-10_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 11
+release_type = "second_preliminary"
+stat_inf_id = "000040413884"
+published_on = "2026-02-17"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040413884&fileKind=0"
+filename = "2025-11_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2025
+month = 12
+release_type = "second_preliminary"
+stat_inf_id = "000040419289"
+published_on = "2026-02-27"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040419289&fileKind=0"
+filename = "2025-12_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2026
+month = 1
+release_type = "second_preliminary"
+provider = "mlit"
+stat_inf_id = "mlit:002010412"
+published_on = "2026-03-31"
+url = "https://www.mlit.go.jp/kankocho/content/002010412.xlsx"
+filename = "2026-01_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2026
+month = 2
+release_type = "second_preliminary"
+stat_inf_id = "000040450865"
+published_on = "2026-04-30"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040450865&fileKind=0"
+filename = "2026-02_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2026
+month = 3
+release_type = "second_preliminary"
+stat_inf_id = "000040458991"
+published_on = "2026-05-29"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040458991&fileKind=0"
+filename = "2026-03_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2026
+month = 4
+release_type = "second_preliminary"
+stat_inf_id = "000040475099"
+published_on = "2026-07-06"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040475099&fileKind=0"
+filename = "2026-04_second_preliminary.xlsx"
+
+[[municipality_sources]]
+year = 2026
+month = 5
+release_type = "second_preliminary"
+stat_inf_id = "000040482630"
+published_on = "2026-07-31"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040482630&fileKind=0"
+filename = "2026-05_second_preliminary.xlsx"

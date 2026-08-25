@@ -1,0 +1,12 @@
+{
+  "published_on": "2026-07-06",
+  "rows": 47,
+  "config": {
+    "base_year": 2019,
+    "target_year": 2025,
+    "target_month": 12,
+    "release_type": "final",
+    "ltm_months": 12,
+    "recent_months": 3
+  }
+}

@@ -1,0 +1,50 @@
+source_page = "https://www.e-stat.go.jp/stat-search/files?layout=dataset&tstat=000001079598"
+
+[[sources]]
+year = 2019
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000031962970&fileKind=0"
+filename = "2019_final.xlsx"
+published_on = "2020-07-08"
+
+[[sources]]
+year = 2020
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032103903&fileKind=0"
+filename = "2020_final.xlsx"
+published_on = "2021-06-30"
+
+[[sources]]
+year = 2021
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000032212336&fileKind=0"
+filename = "2021_final.xlsx"
+published_on = "2022-06-30"
+
+[[sources]]
+year = 2022
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040074102&fileKind=0"
+filename = "2022_final.xlsx"
+published_on = "2023-06-30"
+
+[[sources]]
+year = 2023
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040190618&fileKind=0"
+filename = "2023_final.xlsx"
+published_on = "2024-06-28"
+
+[[sources]]
+year = 2024
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040288348&fileKind=0"
+filename = "2024_final.xlsx"
+published_on = "2025-08-26"
+
+[[sources]]
+year = 2025
+release_type = "final"
+url = "https://www.e-stat.go.jp/stat-search/file-download?statInfId=000040475399&fileKind=0"
+filename = "2025_final.xlsx"
+published_on = "2026-07-06"

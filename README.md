@@ -1,109 +1,112 @@
-# 都道府県別 宿泊市場回復度の構造分析  
-（Hotel Market Recovery Analysis by Prefecture）
+# Hotel Supply & Demand ETL
 
-本プロジェクトは、  
-国土交通省（観光庁）「宿泊旅行統計調査」を用いて、  
-**コロナ禍前後における宿泊市場の回復状況を、都道府県別に構造的に分析**したものです。
+観光庁「宿泊旅行統計調査」の公式Excelを取得・正規化し、SQLiteと静的HTMLレポートを再生成するデータパイプラインです。
+ホテル担保評価で必要となる、全国・都道府県・市区町村の市場モニタリング作業を自動化します。
 
-単なる「需要が戻ったかどうか」ではなく、
+**[Live Demo：ホテルマーケットレポート](https://saito-mmn.github.io/hotel-supply-demand-etl/)**
 
-- 稼働率の回復水準  
-- 市場の安定性（変動リスク）  
-- インバウンド依存度  
-- 需給比(延べ宿泊者数　÷ 施設数)  
+[![CI](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml)
+[![Update and deploy](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml)
 
-といった要素を組み合わせ、  
-**「その回復は持続可能か」「キャッシュフローの不確実性は高くないか」**  
-という実務的な問いに答えることを目的としています。
+## 解決する業務課題
 
----
+ホテルの担保評価において、物件単体の収益性だけでなく、所在地の宿泊需要、客室稼働率、供給環境などの市場動向も継続的に確認します。
+そのために観光庁公表の「宿泊旅行統計調査」を参照することがありますが、市区町村値は月次Excelの複数表に分かれており、継続的な集計・更新に手間がかかります。
 
-## プロジェクトの目的
+本プロジェクトは、公的統計の取得・加工・比較を自動化し、全国の市況から担保所在地まで段階的に確認できるレポートを生成します。
+担保価値や融資可否を自動判定するのではなく、評価担当者が市場環境を確認するための一次資料を提供します。
 
-本プロジェクトの目的は、  
-**未整備・非構造化な公的統計データをETLによって整形し、  
-不動産評価・投資判断に耐えうる市場理解を可能にすること**です。
+## システム全体像
 
-特に、ホテルの不動産鑑定評価や投資判断において重要となる、
+```text
+e-Stat / 観光庁
+      │  年確定値・月次第2次速報 Excel
+      ▼
+Source discovery ── 採用ソース設定
+      ▼
+Fetcher ─────────── manifest・取得日時・SHA-256
+      ▼
+Parser ──────────── 月次レコードへ正規化
+      ▼
+Validation ──────── キー・件数・値範囲・内訳を検証
+      ▼
+SQLite ──────────── 出典・マスター・月次ファクト
+      ▼
+Static report ───── 全国 → 都道府県 → 市区町村
+      ▼
+GitHub Actions ──── CI・更新・GitHub Pages配信
+```
 
-- 稼働率はどこまで回復しているのか  
-- その回復は一過性ではないか  
-- 需要変動リスクの大きい市場はどこか  
+## Technical Highlights
 
-といった論点を、**統計データに基づいて構造的に整理**することを意図しています。
+- 年度・公表月ごとに構造が異なる公式Excelを、都道府県・市区町村別の共通スキーマへ正規化
+- `statInfId`、URL、公表日、取得日時、SHA-256を記録し、採用ソースと訂正履歴を追跡
+- 一時ファイル・一時DB・一時レポートを検証後に原子的に切り替え、失敗時は既存成果物を保持
+- fixtureベースのCIと公式サイトへアクセスする更新Workflowを分離し、品質ゲート通過時のみGitHub Pagesへ反映
+- 全国・47都道府県・307市区町村の静的レポートをSQLiteから自動生成
 
----
+## データソース
 
-## 結論（Summary）
+観光庁「宿泊旅行統計調査」の公式Excelを使用しています。
 
-分析から、以下の点が示唆されました。
+- **都道府県**：年確定値。全国・47都道府県の需要、客室稼働率、施設数を収録
+- **市区町村**：月次第2次速報。公式表に掲載された主な市区町村の需要、客室稼働率、施設数を収録
 
-- 稼働率が高く見える市場であっても、月次変動が大きい地域では 将来CFのブレが大きくなりやすい
-- 需給比が小さい地域では、稼働率が一定水準に見えても 供給過多リスクを内包している可能性がある
-- 需給比が比較的高く、稼働率と変動リスクのバランスが取れている地域は、相対的にCFの安定性を見込みやすい可能性がある
+[観光庁 宿泊旅行統計調査](https://www.mlit.go.jp/kankocho/tokei_hakusyo/shukuhakutokei.html) /
+[e-Stat 宿泊旅行統計調査](https://www.e-stat.go.jp/stat-search/database?layout=datalist&toukei=00601020)
 
-※ 分析ロジック・指標設計・解釈の詳細は、下記Qiita記事に記載しています。
+集計基準、対象期間、欠損の扱いは[分析方法・指標・データ上の制約](docs/methodology.md)を参照してください。
 
----
+## 技術スタック
 
-## 成果物
+- Python 3.11 / openpyxl
+- SQLite
+- HTML / CSS / JavaScript
+- TOML / JSON
+- pytest / Ruff / mypy
+- GitHub Actions / GitHub Pages
 
-- **分析Notebook**  
-  - `notebooks/hotel_demand_supply_recovery_analysis.ipynb`
-- **加工済みデータ**  
-  - `processed/hotel_master_with_facility_with_index.csv`  
-  - `processed/hotel_master_yearly_with_index.csv`
-- **解説記事（Qiita）**  
-  - https://qiita.com/mnmnmnmn0110/private/866d29ac5a43bb090220
+## 設計上の重要判断
 
----
+1. **APIではなく公式Excelを入力にする**：対象期間・指標がe-Stat統計値APIで一貫して提供されていないため、原Excelを正式な入力としました。
+2. **都道府県と市区町村を別ファクトとして保持する**：推計を含む都道府県値と、掲載・回収基準のある市区町村実数を混在させず、出典と集計基準を保持します。
+3. **来歴管理と安全な更新を組み込む**：採用ソースを設定としてレビュー可能にし、取得結果のハッシュを記録します。更新は一時DB・レポートの品質検証後に反映します。
 
-## 分析パイプライン（概要）
+## Quick Start
 
-宿泊旅行統計（Raw Excel / CSV）  
-→ 年度差・表記揺れ・和暦混在を吸収するETL  
-→ 都道府県 × 年月単位の正規化データ作成  
-→ 回復・需給・リスク指標の算出  
-→ 2019年基準での比較・可視化  
-→ 市場構造の解釈・示唆整理  
-
-※ 指標の定義や設計プロセス等はQiita記事側に集約しています。
-
----
-
-## 使用データ・出典
-
-### 観光庁「宿泊旅行統計調査」（公式サイト）
-- 最新の月次推移表を需要側データとして利用
-- リンク：[観光庁 宿泊旅行統計調査](https://www.mlit.go.jp/kankocho/tokei_hakusyo/shukuhakutokei.html)
-
-### e-Stat（政府統計ポータルサイト）
-- 宿泊旅行統計調査のデータセットを一括ダウンロード可能
-- リンク：[宿泊旅行統計調査 データセット一覧](https://www.e-stat.go.jp/stat-search/files?page=1&layout=dataset&toukei=00601020&kikan=00601&tstat=000001079598&cycle=7&result_back=1&tclass1val=0)
-
-※ 元データは再配布制限の可能性があるため、本リポジトリには同梱していません。
-
----
-
-## 技術スタック・実行環境
-
-### 使用技術
-
-- Python 3.x  
-- pandas / NumPy（ETL・集計）  
-- Plotly（可視化）  
-
-### 実行環境
-
-- Google Colaboratory  
-- ローカル環境（Python + Jupyter Notebook）
-
----
-
-## 再現手順（最小）
+Python 3.11以上が必要です。Excelパイプラインにe-Stat APIのアプリケーションIDは不要です。
 
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/hotel-etl pipeline
+.venv/bin/hotel-etl municipality-pipeline --base-year 2019
 ```
-- data/ フォルダに元データを配置し、Notebookを上から順に実行してください
-- Google Colab / ローカル環境の双方で実行可能です
+
+```bash
+.venv/bin/python -m pytest
+```
+
+部分実行コマンドは`hotel-etl --help`を参照してください。
+
+## Documentation
+
+### 公表データ
+
+- [分析方法・指標・データ上の制約](docs/methodology.md)
+- [市区町村データの収録状況](docs/municipality-source-coverage.md)
+- [e-Stat API提供範囲調査](docs/estat-api-audit.md)
+
+### SQLite
+
+- [SQLiteデータモデル・ER図](docs/data-model.md)
+- [データ辞書](docs/data-dictionary.md)
+
+### データ更新・運用
+
+- [公式データ更新パイプライン](docs/update-pipeline.md)
+- [GitHub Pages・自動更新運用](docs/deployment.md)
+
+## License
+
+[MIT License](LICENSE)

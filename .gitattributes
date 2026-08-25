@@ -1,0 +1,2 @@
+# Generated report artifacts should not dominate GitHub Linguist statistics.
+reports/** linguist-generated=true

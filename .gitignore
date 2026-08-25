@@ -1,4 +1,5 @@
 # Byte-compiled / optimized / DLL files
+.DS_Store
 __pycache__/
 *.py[codz]
 *$py.class
@@ -136,7 +137,16 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
+
+# Reproducible data pipeline outputs
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+.pages/
 .venv
 env/
 venv/
