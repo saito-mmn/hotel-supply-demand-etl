@@ -1,0 +1,9 @@
+# Data processing
+pandas
+numpy
+
+# Visualization
+plotly
+
+# Feature scaling / index construction
+scikit-learn
