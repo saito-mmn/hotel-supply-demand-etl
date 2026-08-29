@@ -1,22 +1,37 @@
 # Hotel Supply & Demand ETL
 
 観光庁「宿泊旅行統計調査」の公式Excelを取得・正規化し、SQLiteと静的HTMLレポートを再生成するデータパイプラインです。
-ホテル担保評価で必要となる、全国・都道府県・市区町村の市場モニタリング作業を自動化します。
 
 **[Live Demo：ホテルマーケットレポート](https://saito-mmn.github.io/hotel-supply-demand-etl/)**
 
 [![CI](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml)
 [![Update and deploy](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml)
 
-## 解決する業務課題
+## Why — 解決する業務課題
 
-ホテルの担保評価において、物件単体の収益性だけでなく、所在地の宿泊需要、客室稼働率、供給環境などの市場動向も継続的に確認します。
-そのために観光庁公表の「宿泊旅行統計調査」を参照することがありますが、市区町村値は月次Excelの複数表に分かれており、継続的な集計・更新に手間がかかります。
+銀行でホテル担保評価を担当する中で、物件単体の収益性だけでなく、所在地の宿泊需要、客室稼働率、供給環境などの市場動向を継続的に確認する必要がありました。
 
-本プロジェクトは、公的統計の取得・加工・比較を自動化し、全国の市況から担保所在地まで段階的に確認できるレポートを生成します。
-担保価値や融資可否を自動判定するのではなく、評価担当者が市場環境を確認するための一次資料を提供します。
+一方で、観光庁の宿泊統計は複数のExcelに分かれており、年度や公表区分によって帳票構造も異なります。特に市区町村データは月次ファイルの複数表に分散しているため、分析のたびに取得・加工・照合を行う必要がありました。
 
-## システム全体像
+そこで、**分析者が毎回データを集め直すのではなく、公式データを継続的に取得・検証・再利用できる状態を作ること**を目的として本プロジェクトを開発しました。
+
+## What — 何を提供するか
+
+観光庁・e-Statの「宿泊旅行統計調査」から、全国・都道府県・市区町村の宿泊市場データを共通形式へ整備し、評価担当者が市場環境を段階的に確認できるMarket Reportを生成します。
+
+主な確認項目は以下です。
+
+- 宿泊需要
+- 客室稼働率
+- 外国人宿泊者比率
+- 調査対象施設数
+- 季節変動・需給動向
+
+本プロジェクトは担保価値や融資可否を自動判定するものではありません。
+
+**市場データを継続的かつ比較可能な形で提供し、個別物件について追加調査すべき論点を把握するための一次スクリーニング資料を提供すること**を目的としています。
+
+## How — どう実現するか
 
 ```text
 e-Stat / 観光庁
@@ -35,6 +50,7 @@ SQLite ──────────── 出典・マスター・月次ファ
 Static report ───── 全国 → 都道府県 → 市区町村
       ▼
 GitHub Actions ──── CI・更新・GitHub Pages配信
+
 ```
 
 ## Technical Highlights
