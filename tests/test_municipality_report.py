@@ -37,6 +37,9 @@ class MunicipalityReportTest(unittest.TestCase):
                 'class="sortable',
                 'id="municipality-export"',
                 "municipality-hotel-market.csv",
+                "観光庁「宿泊旅行統計調査」",
+                "を加工して作成",
+                "観光庁・e-Statが本レポートを作成または内容を保証するものではありません",
             ):
                 self.assertIn(text, html)
             self.assertNotIn("要注意", html)
@@ -60,6 +63,8 @@ class MunicipalityReportTest(unittest.TestCase):
                 "4. 利用上の注意",
                 "年間比較に必要な12か月分",
                 "年次比較に必要な12月時点",
+                "観光庁「宿泊旅行統計調査」",
+                "を加工して作成",
             ):
                 self.assertIn(text, html)
             self.assertNotIn("客室規模別内訳", html)

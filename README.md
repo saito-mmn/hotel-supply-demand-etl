@@ -125,4 +125,4 @@ python -m venv .venv
 
 ## License
 
-[MIT License](LICENSE)
+[MIT License](LICENSE)は本リポジトリのソースコードに適用されます。利用している政府統計データには、観光庁・e-Statなど各提供元の利用条件が適用されます。

@@ -20,6 +20,14 @@ def _fmt(value: object, suffix: str = "") -> str:
     return html.escape(str(value))
 
 
+def _source_attribution() -> str:
+    """Identify the official source and distinguish this project's processing."""
+    return """<footer class="source-attribution">
+<p>出典：<a href="https://www.mlit.go.jp/kankocho/tokei_hakusyo/shukuhakutokei.html" target="_blank" rel="noopener noreferrer">観光庁「宿泊旅行統計調査」</a>（<a href="https://www.e-stat.go.jp/stat-search/database?layout=datalist&amp;toukei=00601020" target="_blank" rel="noopener noreferrer">e-Stat</a>・観光庁公表Excel）を加工して作成</p>
+<p>集計・加工・表示は本プロジェクトの作成者によるものであり、観光庁・e-Statが本レポートを作成または内容を保証するものではありません。</p>
+</footer>"""
+
+
 def _document(title: str, body: str) -> str:
     return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title>
@@ -31,8 +39,9 @@ main{{max-width:1120px;margin:auto;padding:32px 20px 64px}}h1{{margin:.2rem 0}}h
 .panel{{margin-top:18px}}.grid-2{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}}.scroll{{overflow-x:auto}}table{{width:100%;border-collapse:collapse;background:#fff;font-size:.9rem}}th,td{{padding:9px;border:1px solid var(--line);text-align:left}}th{{background:#eaf0f5}}.numeric{{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}}
 .tools{{display:flex;gap:12px;align-items:center;margin:12px 0;flex-wrap:wrap}}.tool-actions{{display:flex;gap:12px;align-items:center;flex-wrap:wrap}}input,select{{border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff}}input{{flex:1}}.export-button{{border:1px solid #0e7490;border-radius:7px;padding:9px 12px;background:#fff;color:#0e5f76;font:inherit;font-weight:700;cursor:pointer}}.export-button:hover{{background:#ecfeff}}.chart{{width:100%;height:auto;display:block}}.period-badge{{display:inline-block;border-radius:999px;background:#e0f2fe;color:#075985;padding:2px 7px;margin-top:5px;font-size:.72rem;font-weight:700}}.center{{text-align:center;white-space:nowrap}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer;white-space:nowrap}}.sortable.numeric button{{text-align:right}}.sortable.center button{{text-align:center}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-meta{{background:#f1f5f9;border-top:3px solid #64748b}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}
 .municipality-scroll{{position:relative}}#markets thead{{position:sticky;top:0;z-index:4}}#markets th:first-child,#markets td:first-child{{position:sticky;left:0;min-width:9rem;box-shadow:2px 0 0 var(--line)}}#markets thead th:first-child{{z-index:6;background:#eaf0f5}}#markets tbody td:first-child{{z-index:2;background:var(--paper)}}
+.source-attribution{{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}}.source-attribution p{{margin:.35rem 0}}
 @media(min-width:760px){{.cards{{grid-template-columns:repeat(4,minmax(0,1fr))}}.municipality-scroll{{max-height:70vh;overflow:auto}}}}@media(max-width:760px){{.grid-2{{grid-template-columns:1fr}}.tools{{align-items:stretch}}input{{min-width:100%}}}}
-</style></head><body><main>{body}</main></body></html>"""
+</style></head><body><main>{body}{_source_attribution()}</main></body></html>"""
 
 
 def _load(database: Path) -> tuple[list[dict], dict[int, list[dict]]]:

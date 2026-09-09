@@ -15,6 +15,7 @@ a{color:#075985}.scroll{overflow-x:auto}
 .numeric{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.range-value{font-weight:700;color:#9a3412}.month-pair{text-align:center;white-space:nowrap}
 .table-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px;flex-wrap:wrap}.table-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.table-search{width:min(320px,100%);border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff;color:var(--ink)}.export-button{border:1px solid #0e7490;border-radius:7px;padding:9px 12px;background:#fff;color:#0e5f76;font:inherit;font-weight:700;cursor:pointer}.export-button:hover{background:#ecfeff}.sortable button{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:right;cursor:pointer}.sortable button::after{content:" ↕";color:#64748b}.sortable button[data-direction="asc"]::after{content:" ↑"}.sortable button[data-direction="desc"]::after{content:" ↓"}.th-group{text-align:center;font-size:.82rem;letter-spacing:.04em}.th-supply-demand{background:#e0f2fe;border-top:3px solid #0284c7}.th-inbound{background:#fff7ed;border-top:3px solid #f59e0b}.th-seasonality{background:#f0fdf4;border-top:3px solid #16a34a}.th-diff,.td-diff{background:#f8fafc;border-left:1px dashed #94a3b8}.change-positive{color:#047857;font-weight:700}.change-negative{color:#b45309;font-weight:700}.change-flat{color:#64748b;font-weight:700}
 .prefecture-scroll{position:relative}#prefecture-table thead{position:sticky;top:0;z-index:4}#prefecture-table th:first-child,#prefecture-table td:first-child{position:sticky;left:0;min-width:7.5rem;box-shadow:2px 0 0 var(--line)}#prefecture-table thead th:first-child{z-index:6;background:#eaf0f5}#prefecture-table tbody td:first-child{z-index:2;background:var(--paper)}
+.source-attribution{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}.source-attribution p{margin:.35rem 0}
 @media(min-width:768px){.market-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.demand-charts{grid-template-columns:repeat(2,minmax(0,1fr))}.prefecture-scroll{max-height:70vh;overflow:auto}}@media(max-width:760px){.grid-2{grid-template-columns:1fr}.table-tools{align-items:stretch}.table-search{width:100%}}
 @media print{body{background:#fff}main{max-width:none}.panel,.card{break-inside:avoid}}
 </style></head><body><main><h1>都道府県別ホテルマーケットレポート</h1><p class="sub">対象年：2025年確定値／データ公表日 2026/07/06</p><p><a href="municipalities/index.html">市区町村別ホテルマーケットレポート →</a></p>
@@ -40,4 +41,7 @@ const url=URL.createObjectURL(new Blob(['\ufeff',csv],{type:'text/csv;charset=ut
 const link=document.createElement('a');link.href=url;link.download='prefecture-hotel-market-2025.csv';link.click();URL.revokeObjectURL(url);
 });
 })();
-</script></main></body></html>
+</script><footer class="source-attribution">
+<p>出典：<a href="https://www.mlit.go.jp/kankocho/tokei_hakusyo/shukuhakutokei.html" target="_blank" rel="noopener noreferrer">観光庁「宿泊旅行統計調査」</a>（<a href="https://www.e-stat.go.jp/stat-search/database?layout=datalist&amp;toukei=00601020" target="_blank" rel="noopener noreferrer">e-Stat</a>・観光庁公表Excel）を加工して作成</p>
+<p>集計・加工・表示は本プロジェクトの作成者によるものであり、観光庁・e-Statが本レポートを作成または内容を保証するものではありません。</p>
+</footer></main></body></html>
