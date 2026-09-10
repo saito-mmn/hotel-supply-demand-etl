@@ -5,11 +5,14 @@
 本プロジェクトのLive DemoはGitHub Pagesで配信します。公開するのは生成済み静的レポートだけで、SQLite、Raw Excel、manifest、認証情報をWebへ配置しません。
 
 ```text
-reports/latest/（レビュー用生成物）
+Actions Cacheの最新成功DB
+  ↓ 現行コードでreports/latest/を再生成
   ↓ scripts/prepare_pages.py：選別・件数検証・リンク検証・機密情報検査
 .pages/（一時的な公開成果物、Git管理外）
   ↓ GitHub Actions
 GitHub Pages
+
+reports/latest/（Git管理）＝レビュー用の出力例。公開時のデータ正本ではない
 ```
 
 公開URL：<https://saito-mmn.github.io/hotel-supply-demand-etl/>
@@ -19,7 +22,7 @@ GitHub Pages
 | workflow | 契機 | 外部公式サイト | 役割 |
 |---|---|---|---|
 | `ci.yml` | Pull Request、`main`へのpush | アクセスしない | install、lint、更新系の型検査、fixture test、リポジトリ・HTML検証 |
-| `pages.yml` | 手動 | アクセスしない | Git管理中のレビュー済みHTMLを再公開 |
+| `pages.yml` | `main`への関連変更、手動 | アクセスしない | 最新成功DBを復元し、現行コードでHTMLを再生成して公開 |
 | `update-and-deploy.yml` | 定期、手動 | アクセスする | 更新検出、Excel取得、DB・HTML再生成、成功時のみ公開 |
 
 通常のコード変更は固定fixtureだけで検証し、公式サイトの一時障害から切り離します。公式更新workflowが失敗した場合はdeploy jobへ進まないため、前回成功時のPagesが維持されます。
@@ -38,7 +41,7 @@ CIではRuff、テスト、生成HTML検証をプロジェクト全体に適用�
 3. `Run workflow` からデフォルトブランチを指定して実行する。
 4. `build` と `deploy` が成功したこと、およびworkflow summaryに表示されるURLを確認する。
 
-workflowはレポートを再生成しません。Gitでレビュー済みの`reports/latest/`を公開するため、デプロイ前に必要なパイプラインまたはreportコマンドを実行し、生成差分を確認します。
+workflowはActions Cacheから最新成功時のSQLiteを復元し、現行コードで都道府県・市区町村レポートを再生成します。キャッシュからDBを復元できない場合は、Git管理中の古いHTMLへフォールバックせず公開を停止します。
 
 ## 公式データの定期・手動更新
 
@@ -72,4 +75,4 @@ python3 -m http.server 8000 --directory .pages
 
 ## workflowの責務
 
-手動デプロイworkflowは、Git管理中の生成物を公式サイトへアクセスせず再公開する復旧手段です。公式更新workflowは、公式ソースの更新検知、Excel取得、SQLite更新、HTML再生成、品質ゲート、成功時のデプロイを担います。
+手動デプロイworkflowは、最新成功DBを復元して現行コードでHTMLを再生成し、公式サイトへアクセスせず再公開する復旧手段です。公式更新workflowは、公式ソースの更新検知、Excel取得、SQLite更新、両HTMLレポートの再生成、品質ゲート、成功時のデプロイを担います。Git管理中の`reports/latest/`はレビュー用の出力例であり、Pages公開時のデータ正本にはしません。

@@ -110,6 +110,11 @@ jobs:
         id: update_result
         run: python scripts/check_update_result.py update-result.json --github-output
 
+      - name: Regenerate both reports with current code
+        run: |
+          hotel-etl monitor
+          hotel-etl municipality-report
+
       - name: Validate public artifact
         run: python scripts/prepare_pages.py
 
