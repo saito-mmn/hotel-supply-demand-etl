@@ -6,6 +6,8 @@
 
 ```text
 Actions Cacheの最新成功DB
+  + キャッシュ済み都道府県Raw Excel
+  ↓ 都道府県テーブルを再構築して統合DBを保証
   ↓ 現行コードでreports/latest/を再生成
   ↓ scripts/prepare_pages.py：選別・件数検証・リンク検証・機密情報検査
 .pages/（一時的な公開成果物、Git管理外）
@@ -41,7 +43,7 @@ CIではRuff、テスト、生成HTML検証をプロジェクト全体に適用�
 3. `Run workflow` からデフォルトブランチを指定して実行する。
 4. `build` と `deploy` が成功したこと、およびworkflow summaryに表示されるURLを確認する。
 
-workflowはActions Cacheから最新成功時のSQLiteを復元し、現行コードで都道府県・市区町村レポートを再生成します。キャッシュからDBを復元できない場合は、Git管理中の古いHTMLへフォールバックせず公開を停止します。
+workflowはActions Cacheから最新成功時のSQLite、Raw Excel、採用済みソース設定を復元します。過去キャッシュに都道府県テーブルが含まれない場合にも対応するため、キャッシュ済みExcelから都道府県テーブルを再構築して統合DBを保証した後、現行コードで都道府県・市区町村レポートを再生成します。キャッシュからDBまたは都道府県manifestを復元できない場合は、Git管理中の古いHTMLへフォールバックせず公開を停止します。
 
 ## 公式データの定期・手動更新
 

@@ -48,10 +48,24 @@ jobs:
             hotel-update-${{ runner.os }}-
 
       - name: Require a restored database
-        run: test -f data/processed/hotel_market.sqlite3
+        run: |
+          test -f data/processed/hotel_market.sqlite3
+          test -f data/raw/manifest.json
+
+      - name: Restore adopted source configuration
+        run: |
+          if [ -f .update-state/prefecture_sources.toml ]; then
+            cp .update-state/prefecture_sources.toml config/prefecture_sources.toml
+          elif [ -f .update-state/sources.toml ]; then
+            cp .update-state/sources.toml config/prefecture_sources.toml
+          fi
+          if [ -f .update-state/municipality_sources.toml ]; then
+            cp .update-state/municipality_sources.toml config/municipality_sources.toml
+          fi
 
       - name: Regenerate reports with current code and latest data
         run: |
+          hotel-etl build-db
           hotel-etl monitor
           hotel-etl municipality-report
 

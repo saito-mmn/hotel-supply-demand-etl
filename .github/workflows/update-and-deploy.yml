@@ -112,6 +112,7 @@ jobs:
 
       - name: Regenerate both reports with current code
         run: |
+          hotel-etl build-db
           hotel-etl monitor
           hotel-etl municipality-report
 
