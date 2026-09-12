@@ -174,7 +174,7 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn("観光庁「宿泊旅行統計調査」", detail_html)
             self.assertIn("を加工して作成", detail_html)
             self.assertIn("宿泊施設数（2025年12月）", detail_html)
-            self.assertIn("直近3年の月次総需要トレンドを、コロナ禍前の2019年と比較します", detail_html)
+            self.assertIn("直近3年の月次総需要トレンドを、コロナ禍前の水準を示す2019年と比較し、需要の回復度合いを確認します", detail_html)
             self.assertIn("総延べ宿泊者数・月次推移（2019年・直近3年）", detail_html)
             self.assertIn("年次需要構造と外国人比率（直近3年）", detail_html)
             self.assertIn('class="demand-charts"', detail_html)

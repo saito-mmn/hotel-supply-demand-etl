@@ -435,13 +435,13 @@ def _market_sheet(
 <p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p>
 <div class="market-kpis">{card_html}</div>
 {fact_summary}
-<section class="panel axis"><h2>1. 客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の{config.base_year}年と比較します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}</section>
-<section class="panel axis"><h2>2. 延べ宿泊者数（需要）</h2><p class="question">直近3年の月次総需要トレンドを、コロナ禍前の{config.base_year}年と比較します。また、年次での需要構造（日本人・外国人比率）の変化も確認します。</p>
+<section class="panel axis"><h2>1. 客室稼働率</h2><p class="question">直近3年の月次推移を、コロナ禍前の水準を示す{config.base_year}年と比較し、稼働率の回復度合いを確認します。</p>{_line_chart(occupancy, y_label="客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}</section>
+<section class="panel axis"><h2>2. 延べ宿泊者数（需要）</h2><p class="question">直近3年の月次総需要トレンドを、コロナ禍前の水準を示す{config.base_year}年と比較し、需要の回復度合いを確認します。また、年次での需要構造（日本人・外国人比率）の変化も確認します。</p>
 <div class="demand-charts">
 <div class="chart-box"><h3>総延べ宿泊者数・月次推移（{config.base_year}年・直近3年）</h3>{_monthly_demand_chart(history, comparison_years, reference_year=config.base_year)}</div>
 <div class="chart-box"><h3>年次需要構造と外国人比率（直近3年）</h3>{_annual_demand_structure_chart(history, recent_years)}</div>
 </div></section>
-<section class="panel axis"><h2>3. 宿泊施設数（供給）</h2><p class="question">調査対象施設数の年次推移（{config.base_year}年・直近3年）を確認し、供給環境の変化を把握します。</p>{_annual_facilities_chart(history, comparison_years)}<p class="chart-note">各年12月時点。客室数ではなく、調査対象の施設数です。</p></section>"""
+<section class="panel axis"><h2>3. 宿泊施設数（供給）</h2><p class="question">調査対象施設数の年次推移（コロナ禍前の{config.base_year}年・直近3年）を確認し、供給環境がコロナ禍前からどう変化したかを把握します。</p>{_annual_facilities_chart(history, comparison_years)}<p class="chart-note">各年12月時点。客室数ではなく、調査対象の施設数です。</p></section>"""
     return _document(f"{row['prefecture_name']} Market Sheet", body)
 
 
@@ -525,9 +525,9 @@ def _index_html(
     national_series = {year: national[year] for year in comparison_years}
     prefecture_table = _prefecture_table(rows)
     body = f"""<h1>都道府県別ホテルマーケットレポート</h1><p class="sub">対象年：{config.target_year}年確定値／データ公表日 {html.escape(_display_date(published_on))}</p><p><a href="municipalities/index.html">市区町村別ホテルマーケットレポート →</a></p>
-<section class="panel axis"><h2>1. 全国の客室稼働率</h2><p class="question">月次の全国客室稼働率は、全国の利用客室数 ÷ 全国の総客室数で算出された観光庁公表値です。都道府県別稼働率の単純平均ではありません。KPIは月次公表値12か月の単純平均です。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 月次全国値の平均</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
-<section class="panel axis"><h2>2. 全国の延べ宿泊者数（需要）</h2><p class="question">全都道府県の月次延べ宿泊者数を合計した値です。{config.base_year}年・直近3年を比較します。</p>{_monthly_demand_chart(national_history, comparison_years, reference_year=config.base_year)}<p class="chart-note">都道府県別データの単純合計であり、観光庁が公表する全国値ではありません。</p></section>
-<section class="panel axis"><h2>3. 全国の宿泊施設数（供給）</h2><p class="question">全都道府県の調査対象施設数を合計した年次推移（{config.base_year}年・直近3年、各年12月時点）です。</p>{_annual_facilities_chart(national_history, comparison_years)}<p class="chart-note">都道府県別データの単純合計であり、客室数ではなく調査対象の施設数です。</p></section>
+<section class="panel axis"><h2>1. 全国の客室稼働率</h2><p class="question">月次の全国客室稼働率は、全国の利用客室数 ÷ 全国の総客室数で算出された観光庁公表値です。都道府県別稼働率の単純平均ではありません。KPIは月次公表値12か月の単純平均です。コロナ禍前の水準を示す{config.base_year}年と比較し、稼働率の回復度合いも確認できます。</p>{_line_chart(national_series, y_label="全国客室稼働率", suffix="%", reference_year=config.base_year, y_domain=(0, 100))}<div class="cards"><div class="card"><div class="sub">{config.target_year}年 月次全国値の平均</div><div class="metric">{target_average:.1f}%</div></div><div class="card"><div class="sub">前年平均との差</div><div class="metric">{target_average-previous_average:+.1f}pt</div></div><div class="card"><div class="sub">{config.base_year}年平均との差</div><div class="metric">{target_average-base_average:+.1f}pt</div></div></div></section>
+<section class="panel axis"><h2>2. 全国の延べ宿泊者数（需要）</h2><p class="question">全都道府県の月次延べ宿泊者数を合計した値です。コロナ禍前の水準を示す{config.base_year}年と直近3年を比較し、需要の回復度合いを確認します。</p>{_monthly_demand_chart(national_history, comparison_years, reference_year=config.base_year)}<p class="chart-note">都道府県別データの単純合計であり、観光庁が公表する全国値ではありません。</p></section>
+<section class="panel axis"><h2>3. 全国の宿泊施設数（供給）</h2><p class="question">全都道府県の調査対象施設数を合計した年次推移（コロナ禍前の{config.base_year}年・直近3年、各年12月時点）です。供給環境がコロナ禍前からどう変化したかを確認できます。</p>{_annual_facilities_chart(national_history, comparison_years)}<p class="chart-note">都道府県別データの単純合計であり、客室数ではなく調査対象の施設数です。</p></section>
 <section class="panel axis"><h2>4. 都道府県一覧</h2><p class="question">県名をクリックすると時系列Market Sheetを表示します。列見出しで並べ替え、検索欄で絞り込めます。</p><p class="chart-note">※ Seasonal CV（変動係数）＝ 各都道府県の月次客室稼働率（12か月）の標準偏差（σ） ÷ 年間平均客室稼働率（μ）<br>※ 繁閑レンジ ＝ 年間における月次客室稼働率の最高値（ピーク月）と最低値（ボトム月）のポイント差（pt）</p>{prefecture_table}</section>
 <script>
 (()=>{{
