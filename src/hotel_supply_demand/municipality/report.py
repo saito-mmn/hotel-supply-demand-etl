@@ -28,6 +28,23 @@ def _source_attribution() -> str:
 </footer>"""
 
 
+_CHART_TOOLTIP_MARKUP = '<div id="chart-tooltip" class="chart-tooltip" role="status" aria-hidden="true"></div>'
+
+_CHART_TOOLTIP_SCRIPT = """<script>
+(()=>{
+const tip=document.getElementById('chart-tooltip');
+if(!tip)return;
+const place=event=>{tip.style.left=event.clientX+'px';tip.style.top=(event.clientY-14)+'px';};
+const show=(target,event)=>{const text=target.getAttribute('data-tip');if(!text)return;tip.textContent=text;place(event);tip.classList.add('is-visible');};
+const hide=()=>tip.classList.remove('is-visible');
+document.addEventListener('pointermove',event=>{const target=event.target.closest('[data-tip]');target?show(target,event):hide();});
+document.addEventListener('pointerdown',event=>{const target=event.target.closest('[data-tip]');if(target)show(target,event);});
+document.addEventListener('pointerleave',hide);
+document.addEventListener('scroll',hide,true);
+})();
+</script>"""
+
+
 def _document(title: str, body: str) -> str:
     return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>{html.escape(title)}</title>
@@ -40,8 +57,9 @@ main{{max-width:1120px;margin:auto;padding:32px 20px 64px}}h1{{margin:.2rem 0}}h
 .tools{{display:flex;gap:12px;align-items:center;margin:12px 0;flex-wrap:wrap}}.tool-actions{{display:flex;gap:12px;align-items:center;flex-wrap:wrap}}input,select{{border:1px solid #aeb8c5;border-radius:7px;padding:9px 11px;font:inherit;background:#fff}}input{{flex:1}}.export-button{{border:1px solid #0e7490;border-radius:7px;padding:9px 12px;background:#fff;color:#0e5f76;font:inherit;font-weight:700;cursor:pointer}}.export-button:hover{{background:#ecfeff}}.chart{{width:100%;height:auto;display:block}}.period-badge{{display:inline-block;border-radius:999px;background:#e0f2fe;color:#075985;padding:2px 7px;margin-top:5px;font-size:.72rem;font-weight:700}}.center{{text-align:center;white-space:nowrap}}.sortable button{{width:100%;border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer;white-space:nowrap}}.sortable.numeric button{{text-align:right}}.sortable.center button{{text-align:center}}.sortable button::after{{content:" ↕";color:#64748b}}.sortable button[data-direction="asc"]::after{{content:" ↑"}}.sortable button[data-direction="desc"]::after{{content:" ↓"}}.th-group{{text-align:center;font-size:.82rem;letter-spacing:.04em}}.th-meta{{background:#f1f5f9;border-top:3px solid #64748b}}.th-supply-demand{{background:#e0f2fe;border-top:3px solid #0284c7}}.th-inbound{{background:#fff7ed;border-top:3px solid #f59e0b}}
 .municipality-scroll{{position:relative}}#markets thead{{position:sticky;top:0;z-index:4}}#markets th:first-child,#markets td:first-child{{position:sticky;left:0;min-width:9rem;box-shadow:2px 0 0 var(--line)}}#markets thead th:first-child{{z-index:6;background:#eaf0f5}}#markets tbody td:first-child{{z-index:2;background:var(--paper)}}
 .source-attribution{{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}}.source-attribution p{{margin:.35rem 0}}
+.chart-tooltip{{position:fixed;pointer-events:none;z-index:80;background:#0f172a;color:#f8fafc;font-size:.78rem;line-height:1.5;padding:8px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(15,23,42,.28);white-space:pre-line;max-width:230px;opacity:0;transform:translate(-50%,-100%);transition:opacity .1s ease}}.chart-tooltip.is-visible{{opacity:1}}svg.chart [data-tip]{{cursor:crosshair}}
 @media(min-width:760px){{.cards{{grid-template-columns:repeat(4,minmax(0,1fr))}}.municipality-scroll{{max-height:70vh;overflow:auto}}}}@media(max-width:760px){{.grid-2{{grid-template-columns:1fr}}.tools{{align-items:stretch}}input{{min-width:100%}}}}
-</style></head><body><main>{body}{_source_attribution()}</main></body></html>"""
+</style></head><body>{_CHART_TOOLTIP_MARKUP}<main>{body}{_source_attribution()}</main>{_CHART_TOOLTIP_SCRIPT}</body></html>"""
 
 
 def _load(database: Path) -> tuple[list[dict], dict[int, list[dict]]]:
@@ -181,8 +199,7 @@ def _seasonality_chart(
             )
         for month, value in monthly.items():
             parts.append(
-                f'<circle cx="{x(month):.1f}" cy="{y(float(value)):.1f}" r="3" '
-                f'fill="{color}"><title>{year}年{month}月 {value:,.1f}{suffix}</title></circle>'
+                f'<circle cx="{x(month):.1f}" cy="{y(float(value)):.1f}" r="3" fill="{color}"/>'
             )
         parts.append(
             f'<line x1="{legend_x}" y1="22" x2="{legend_x+24}" y2="22" '
@@ -193,6 +210,22 @@ def _seasonality_chart(
             f'fill="#334155">{year}年</text>'
         )
         legend_x += 104
+    column_width = plot_width / 11
+    for month in range(1, 13):
+        entries = []
+        for year in years:
+            value = series[year].get(month)
+            if value is None:
+                continue
+            label = f"{value:,.1f}" if suffix == "%" else f"{value:,.0f}"
+            entries.append(f"{year}年: {label}{suffix}")
+        if not entries:
+            continue
+        tip = "\n".join([f"{month}月", *entries])
+        parts.append(
+            f'<rect x="{x(month)-column_width/2:.1f}" y="{top}" width="{column_width:.1f}" '
+            f'height="{plot_height}" fill="transparent" data-tip="{html.escape(tip)}"/>'
+        )
     return (
         f'<svg viewBox="0 0 {width} {height}" class="chart" role="img" '
         f'aria-label="{years[0]}年から{years[-1]}年の月次比較">{"".join(parts)}</svg>'
@@ -263,13 +296,19 @@ def _annual_demand_chart(history: list[dict], years: list[int]) -> str:
         base = top + plot_height
         parts.append(
             f'<rect x="{px-bar_width/2:.1f}" y="{japanese_top:.1f}" width="{bar_width:.1f}" '
-            f'height="{base-japanese_top:.1f}" fill="#334155"><title>{year}年 日本人 '
-            f'{japanese:,}人泊</title></rect>'
+            f'height="{base-japanese_top:.1f}" fill="#334155"/>'
         )
         parts.append(
             f'<rect x="{px-bar_width/2:.1f}" y="{total_top:.1f}" width="{bar_width:.1f}" '
-            f'height="{japanese_top-total_top:.1f}" fill="#f59e0b"><title>{year}年 外国人 '
-            f'{foreign:,}人泊</title></rect>'
+            f'height="{japanese_top-total_top:.1f}" fill="#f59e0b"/>'
+        )
+        tip = html.escape(
+            f"{year}年\n日本人: {japanese:,}人泊\n外国人: {foreign:,}人泊\n"
+            f"合計: {japanese+foreign:,}人泊\n外国人比率: {share:.1f}%"
+        )
+        parts.append(
+            f'<rect x="{px-bar_width/2:.1f}" y="{total_top:.1f}" width="{bar_width:.1f}" '
+            f'height="{base-total_top:.1f}" fill="transparent" data-tip="{tip}"/>'
         )
         parts.append(
             f'<text x="{px:.1f}" y="{height-18}" text-anchor="middle" font-size="12" '
@@ -282,8 +321,7 @@ def _annual_demand_chart(history: list[dict], years: list[int]) -> str:
     )
     for index, (*_, share) in enumerate(annual):
         parts.append(
-            f'<circle cx="{x(index):.1f}" cy="{share_y(share):.1f}" r="4" '
-            f'fill="#0ea5e9"><title>外国人比率 {share:.1f}%</title></circle>'
+            f'<circle cx="{x(index):.1f}" cy="{share_y(share):.1f}" r="4" fill="#0ea5e9"/>'
         )
     parts.append(
         f'<text x="{left}" y="25" font-size="12" fill="#334155">■ 日本人　'
@@ -357,10 +395,10 @@ def _annual_facilities_chart(history: list[dict], years: list[int]) -> str:
     for index, (year, value) in enumerate(annual):
         px, py = x(index), y(value)
         base = top + plot_height
+        tip = html.escape(f"{year}年12月 {value:,}施設")
         parts.append(
             f'<rect x="{px-bar_width/2:.1f}" y="{py:.1f}" width="{bar_width:.1f}" '
-            f'height="{base-py:.1f}" fill="#0f766e"><title>{year}年12月 '
-            f'{value:,}施設</title></rect>'
+            f'height="{base-py:.1f}" fill="#0f766e" data-tip="{tip}"/>'
         )
         parts.append(
             f'<text x="{px:.1f}" y="{py-8:.1f}" text-anchor="middle" font-size="12" '
@@ -389,7 +427,7 @@ def _sheet(history: list[dict], base_year: int, occupancy_axis_max: float) -> st
 <p class="sub">{latest['year']}年{latest['month']}月 第2次速報｜データ公表日 {published}｜source ID {html.escape(latest['stat_inf_id'])}</p><p class="note">収録期間 {latest['coverage_start']}～{latest['coverage_end']}／掲載 {latest['coverage_months']}観測月</p>
 <div class="cards"><div class="card"><div class="sub">客室稼働率</div><div class="metric">{_fmt(latest['occupancy_rate'], '%')}</div><span class="period-badge">{period_label}</span></div><div class="card"><div class="sub">延べ宿泊者数</div><div class="metric">{_fmt(latest['total_guests'], '人')}</div><span class="period-badge">{period_label}</span></div><div class="card"><div class="sub">外国人延べ宿泊者比率</div><div class="metric">{_fmt(foreign_share, '%')}</div><span class="period-badge">{period_label}</span></div><div class="card"><div class="sub">調査対象施設数</div><div class="metric">{_fmt(latest['population_facilities'], '施設')}</div><div class="metric-detail">回答施設数 {_fmt(latest['responding_facilities'], '施設')}</div><span class="period-badge">{period_label}</span></div></div>
 <section class="panel"><h2>1. 客室稼働率</h2><p class="note">直近3年を1月〜12月の同じ軸に重ね、比較基準の{base_year}年（破線）と比較します。公式表に掲載されなかった月は線を途切れさせます。</p>{_seasonality_chart(history, 'occupancy_rate', '%', occupancy_years, reference_year=base_year, y_domain=(0.0, occupancy_axis_max))}</section>
-<section class="panel"><h2>2. 延べ宿泊者数（需要）</h2><p class="note">直近3年の月次需要を季節ごとに比較し、比較可能な場合は年次での日本人・外国人需要構造も確認します。</p><div class="grid-2"><div><h3>総延べ宿泊者数・月次比較（直近3年）</h3>{_seasonality_chart(history, 'total_guests', '人', recent_years)}</div><div><h3>年次需要構造と外国人比率（直近3年）</h3>{_annual_demand_chart(history, recent_years)}</div></div></section>
+<section class="panel"><h2>2. 延べ宿泊者数（需要）</h2><p class="note">直近3年の月次需要を、比較基準の{base_year}年（破線）と季節ごとに比較します。比較可能な場合は年次での日本人・外国人需要構造も確認します。</p><div class="grid-2"><div><h3>総延べ宿泊者数・月次比較（{base_year}年・直近3年）</h3>{_seasonality_chart(history, 'total_guests', '人', occupancy_years, reference_year=base_year)}</div><div><h3>年次需要構造と外国人比率（直近3年）</h3>{_annual_demand_chart(history, recent_years)}</div></div></section>
 <section class="panel"><h2>3. 宿泊施設数（供給）</h2><p class="note">{base_year}年および直近3年の各年12月時点を比較します。</p>{_annual_facilities_chart(history, facility_years)}<p class="note">調査対象施設数であり、客室数や実際の供給能力を示すものではありません。</p></section>
 <section class="panel"><h2>4. 利用上の注意</h2><p>掲載された主な市区町村の実数であり、未回収施設を含む全市区町村の推計値ではありません。</p></section>"""
     return _document(f"{latest['municipality_name']} Market Sheet", body)

@@ -80,8 +80,15 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn(">市区町村別ホテルマーケットレポート →</a>", index_html)
             self.assertIn("対象年：2025年確定値", index_html)
             self.assertIn("データ公表日 2026/07/01", index_html)
-            for heading in ("1. 全国のホテル市況", "2. 都道府県一覧"):
+            for heading in (
+                "1. 全国の客室稼働率",
+                "2. 全国の延べ宿泊者数（需要）",
+                "3. 全国の宿泊施設数（供給）",
+                "4. 都道府県一覧",
+            ):
                 self.assertIn(heading, index_html)
+            self.assertIn("都道府県別データの単純合計であり、観光庁が公表する全国値ではありません", index_html)
+            self.assertIn("2019年12月 4,700施設", index_html)
             self.assertNotIn("2. インバウンド", index_html)
             self.assertNotIn("3. 季節変動ランキング", index_html)
             self.assertNotIn("<h2>2. 市場回復の広がり</h2>", index_html)
@@ -167,8 +174,8 @@ class AnalysisTest(unittest.TestCase):
             self.assertIn("観光庁「宿泊旅行統計調査」", detail_html)
             self.assertIn("を加工して作成", detail_html)
             self.assertIn("宿泊施設数（2025年12月）", detail_html)
-            self.assertIn("直近3年の月次総需要トレンドと、年次での需要構造（日本人・外国人比率）の変化", detail_html)
-            self.assertIn("総延べ宿泊者数・月次推移（直近3年）", detail_html)
+            self.assertIn("直近3年の月次総需要トレンドを、コロナ禍前の2019年と比較します", detail_html)
+            self.assertIn("総延べ宿泊者数・月次推移（2019年・直近3年）", detail_html)
             self.assertIn("年次需要構造と外国人比率（直近3年）", detail_html)
             self.assertIn('class="demand-charts"', detail_html)
             self.assertIn("調査対象施設数の年次推移", detail_html)
