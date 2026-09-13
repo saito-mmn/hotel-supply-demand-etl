@@ -87,3 +87,9 @@ Excelの空欄、`-`、`…`、`...`、`X`、`*`はゼロへ変換せずSQLite�
 | `annual_market` | 12か月の需要合計、稼働率平均、施設数平均を集計した年次分析データ |
 
 派生指標はファクトテーブルへ重複保存せず、Viewと`prefecture/analysis.py`から再計算する。指標定義は[分析方法論](methodology.md)を参照する。
+
+## Tableau用CSV
+
+`hotel-etl export-bi`はSQLiteから`prefecture_monthly.csv`、`municipality_monthly.csv`、`metadata.csv`を再生成する。CSVは正規化DBを置き換える保存層ではなく、Tableauで安全に探索するためのconsumer向けデータ契約である。
+
+都道府県CSVには公式全国客室稼働率を比較行として含める。市区町村CSVは`room_size_class=total`だけを対象とし、未掲載月をNULLの`not_listed`行として補った密な月次パネルとする。詳細な列、粒度、Tableau側の集計方法は[Tableau用データセット](tableau.md)を参照する。
