@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from .bi_export import export_bi_data
 from .config import ConfigurationError, get_estat_app_id
 from .estat_client import EstatApiError, EstatClient
 from .fetcher import FetchError
@@ -29,6 +31,7 @@ from .prefecture.pipeline import run_pipeline
 from .prefecture.report import generate_reports
 from .prefecture.sources import SourceConfigurationError, load_sources
 from .prefecture.validation import DataQualityError
+from .sheets_sync import load_credentials_info, sync_tableau_sheets
 from .update import discover_updates, update_municipality, update_prefecture
 
 
@@ -95,6 +98,31 @@ def _build_parser() -> argparse.ArgumentParser:
         "--report-dir", type=Path, default=Path("reports/latest/municipalities")
     )
     municipality_report.add_argument("--base-year", type=int, default=2019)
+
+    export_bi = subparsers.add_parser(
+        "export-bi", help="Generate validated Tableau CSV datasets from SQLite"
+    )
+    export_bi.add_argument(
+        "--database", type=Path, default=Path("data/processed/hotel_market.sqlite3")
+    )
+    export_bi.add_argument(
+        "--output-dir", type=Path, default=Path("exports/tableau")
+    )
+    export_bi.add_argument("--base-year", type=int, default=2019)
+
+    sync_sheets = subparsers.add_parser(
+        "sync-sheets", help="Push exported Tableau CSVs into Google Sheets tabs"
+    )
+    sync_sheets.add_argument(
+        "--csv-dir", type=Path, default=Path("exports/tableau")
+    )
+    sync_sheets.add_argument("--spreadsheet-id", required=True)
+    sync_sheets.add_argument(
+        "--credentials-file",
+        type=Path,
+        help="Google service-account JSON key file "
+        "(defaults to the GOOGLE_SHEETS_CREDENTIALS_JSON environment variable)",
+    )
 
     check_updates = subparsers.add_parser(
         "check-updates", help="Discover official prefecture and municipality updates"
@@ -256,6 +284,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = generate_municipality_reports(
                 args.database, args.report_dir, base_year=args.base_year
             )
+        elif args.command == "export-bi":
+            result = export_bi_data(
+                args.database, args.output_dir, base_year=args.base_year
+            )
+        elif args.command == "sync-sheets":
+            if args.credentials_file:
+                raw_credentials = args.credentials_file.read_text(encoding="utf-8")
+            else:
+                raw_credentials = os.environ.get("GOOGLE_SHEETS_CREDENTIALS_JSON", "")
+                if not raw_credentials:
+                    raise ValueError(
+                        "provide --credentials-file or set GOOGLE_SHEETS_CREDENTIALS_JSON"
+                    )
+            credentials_info = load_credentials_info(raw_credentials)
+            result = sync_tableau_sheets(args.csv_dir, args.spreadsheet_id, credentials_info)
         elif args.command == "check-updates":
             result = discover_updates(
                 args.prefecture_sources, args.municipality_sources

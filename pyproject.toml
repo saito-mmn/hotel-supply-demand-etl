@@ -23,6 +23,10 @@ dev = [
   "pytest>=8.0",
   "ruff>=0.9",
 ]
+sheets = [
+  "gspread>=6,<7",
+  "google-auth>=2,<3",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

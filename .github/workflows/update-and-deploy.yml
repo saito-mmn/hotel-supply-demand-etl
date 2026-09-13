@@ -47,7 +47,7 @@ jobs:
           cache: pip
 
       - name: Install project and development tools
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev,sheets]"
 
       - name: Run code quality gates before external access
         run: >-
@@ -130,6 +130,38 @@ jobs:
           else
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Export Tableau CSV datasets
+        if: steps.decision.outputs.should_deploy == 'true'
+        run: hotel-etl export-bi
+
+      # The secrets context cannot be read directly in an `if:` condition, so
+      # resolve whether Tableau sync is configured into a step output here.
+      - name: Check Tableau sync configuration
+        id: tableau_sync_config
+        if: steps.decision.outputs.should_deploy == 'true'
+        env:
+          HAS_SPREADSHEET_ID: ${{ vars.TABLEAU_SPREADSHEET_ID != '' }}
+          HAS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON != '' }}
+        run: |
+          if [ "$HAS_SPREADSHEET_ID" = "true" ] && [ "$HAS_CREDENTIALS" = "true" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Tableau Public can only auto-refresh a Google Sheets/OneDrive/Dropbox/Box
+      # connection, so this pushes the freshly exported CSVs into a Google Sheet;
+      # Tableau Public then pulls the change on its own configured schedule.
+      # Skipped until TABLEAU_SPREADSHEET_ID and GOOGLE_SHEETS_CREDENTIALS_JSON are
+      # configured (repo variable and secret) -- see docs/tableau.md.
+      - name: Sync Tableau CSV datasets to Google Sheets
+        if: steps.tableau_sync_config.outputs.configured == 'true'
+        env:
+          GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
+        run: >-
+          hotel-etl sync-sheets
+          --spreadsheet-id "${{ vars.TABLEAU_SPREADSHEET_ID }}"
 
       - name: Upload update audit artifact
         if: always()

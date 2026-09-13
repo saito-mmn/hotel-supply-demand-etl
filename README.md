@@ -4,6 +4,8 @@
 
 **[Live Demo：ホテルマーケットレポート](https://saito-mmn.github.io/hotel-supply-demand-etl/)**
 
+**[Tableau Dashboard](https://public.tableau.com/views/_17880794228750/1?:language=ja-JP&publish=yes&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link)**: 都道府県・市区町村別の客室稼働率、延べ宿泊者数、施設数を対話的に確認できます。
+
 [![CI](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/ci.yml)
 [![Update and deploy](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml/badge.svg)](https://github.com/saito-mmn/hotel-supply-demand-etl/actions/workflows/update-and-deploy.yml)
 
@@ -122,6 +124,7 @@ python -m venv .venv
 
 - [公式データ更新パイプライン](docs/update-pipeline.md)
 - [GitHub Pages・自動更新運用](docs/deployment.md)
+- [Tableau用データセット](docs/tableau.md)
 
 ## License
 
