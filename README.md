@@ -83,6 +83,7 @@ GitHub Actions ──── CI・更新・GitHub Pages配信
 - TOML / JSON
 - pytest / Ruff / mypy
 - GitHub Actions / GitHub Pages
+- Tableau Public（Google Sheets API経由でCSVを自動同期）
 
 ## 設計上の重要判断
 
