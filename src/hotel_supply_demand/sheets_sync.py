@@ -25,6 +25,16 @@ DATASETS = ["prefecture_monthly", "municipality_monthly", "metadata"]
 
 SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
+# Columns that are identifiers/codes rather than genuine numbers or dates.
+# Sheets is written with value_input_option="USER_ENTERED" so Tableau sees
+# real number/date types instead of everything coming in as text, but that
+# same auto-detection would mangle these columns -- e.g. prefecture_code's
+# zero-padding ("01") would collapse to the number 1, and an all-digit
+# source_stat_inf_id or (astronomically unlikely, but possible) source_sha256
+# would silently become a number. These are force-quoted as literal text
+# instead (see `_quote_as_text`).
+FORCE_TEXT_COLUMNS = {"prefecture_code", "municipality_key", "source_stat_inf_id", "source_sha256"}
+
 
 class SheetsSyncError(ValueError):
     pass
@@ -40,9 +50,29 @@ class SpreadsheetLike(Protocol):
     def worksheet(self, title: str) -> WorksheetLike: ...
 
 
-def _read_csv_rows(path: Path) -> list[list[str]]:
+def _quote_as_text(value: str) -> str:
+    """Force a value to stay literal text under value_input_option=USER_ENTERED.
+
+    A leading apostrophe is Sheets' own convention for "treat this as text
+    even if it looks like a number or formula" -- the same thing typing
+    ``'01`` into a cell in the UI does. It is stripped from what displays.
+    """
+    return f"'{value}" if value else value
+
+
+def _read_csv_rows(path: Path, force_text_columns: set[str]) -> list[list[str]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
-        return list(csv.reader(handle))
+        rows = list(csv.reader(handle))
+    if not rows:
+        return rows
+    header = rows[0]
+    text_indexes = {index for index, name in enumerate(header) if name in force_text_columns}
+    if not text_indexes:
+        return rows
+    for row in rows[1:]:
+        for index in text_indexes:
+            row[index] = _quote_as_text(row[index])
+    return rows
 
 
 def load_credentials_info(raw: str) -> dict[str, Any]:
@@ -93,9 +123,12 @@ def sync_tableau_sheets(
     spreadsheet = open_spreadsheet_fn(spreadsheet_id, credentials_info)
     synced: dict[str, Any] = {}
     for dataset_name in DATASETS:
-        rows = _read_csv_rows(csv_dir / f"{dataset_name}.csv")
+        rows = _read_csv_rows(csv_dir / f"{dataset_name}.csv", FORCE_TEXT_COLUMNS)
         worksheet = spreadsheet.worksheet(dataset_name)
         worksheet.clear()
-        worksheet.update(values=rows, value_input_option="RAW")
+        # USER_ENTERED lets Sheets parse plain numbers and ISO dates into
+        # real number/date types (matching what Tableau expects) instead of
+        # leaving every column as text, which RAW would do.
+        worksheet.update(values=rows, value_input_option="USER_ENTERED")
         synced[dataset_name] = {"worksheet": dataset_name, "rows": max(len(rows) - 1, 0)}
     return {"spreadsheet_id": spreadsheet_id, "datasets": synced}

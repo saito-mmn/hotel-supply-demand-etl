@@ -49,7 +49,10 @@ class SheetsSyncTest(unittest.TestCase):
     def test_sync_replaces_each_worksheet_with_its_csv(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             csv_dir = Path(directory)
-            _write_csv(csv_dir / "prefecture_monthly.csv", [["date", "value"], ["2025-01-01", "1"]])
+            _write_csv(
+                csv_dir / "prefecture_monthly.csv",
+                [["date", "prefecture_code", "value"], ["2025-01-01", "01", "1"]],
+            )
             _write_csv(
                 csv_dir / "municipality_monthly.csv", [["date", "value"], ["2025-01-01", "2"]]
             )
@@ -70,9 +73,30 @@ class SheetsSyncTest(unittest.TestCase):
             for name in DATASETS:
                 worksheet = fake_spreadsheet.worksheets[name]
                 self.assertTrue(worksheet.cleared)
-                self.assertEqual(worksheet.value_input_option, "RAW")
+                self.assertEqual(worksheet.value_input_option, "USER_ENTERED")
                 self.assertIsNotNone(worksheet.updated_values)
             self.assertEqual(result["datasets"]["prefecture_monthly"]["rows"], 1)
+
+    def test_sync_quotes_identifier_columns_as_literal_text(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            csv_dir = Path(directory)
+            _write_csv(
+                csv_dir / "prefecture_monthly.csv",
+                [["date", "prefecture_code", "value"], ["2025-01-01", "01", "1"]],
+            )
+            _write_csv(csv_dir / "municipality_monthly.csv", [["date"], ["2025-01-01"]])
+            _write_csv(csv_dir / "metadata.csv", [["dataset_name"], ["prefecture_monthly"]])
+
+            fake_spreadsheet = FakeSpreadsheet()
+            sync_tableau_sheets(
+                csv_dir,
+                "sheet-id",
+                {},
+                open_spreadsheet_fn=lambda spreadsheet_id, credentials_info: fake_spreadsheet,
+            )
+
+            prefecture_values = fake_spreadsheet.worksheets["prefecture_monthly"].updated_values
+            self.assertEqual(prefecture_values[1], ["2025-01-01", "'01", "1"])
 
     def test_sync_requires_every_dataset_csv_to_exist(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

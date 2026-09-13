@@ -125,6 +125,8 @@ hotel-etl update（SQLite更新・レポート再生成）
 
 `--credentials-file`を省略した場合は環境変数`GOOGLE_SHEETS_CREDENTIALS_JSON`（JSON文字列そのもの）を読む。対象スプレッドシートには`prefecture_monthly`・`municipality_monthly`・`metadata`という名前のタブを事前に用意し、書き込みを行うサービスアカウントをEditorとして共有しておく。実行のたびに各タブの内容を丸ごとクリアしてCSVで置き換える。
 
+書き込みは`value_input_option=USER_ENTERED`（Sheetsに人間が入力したのと同様に型推測させる）で行うため、Tableau側で数値・日付列がテキストではなく数値・日付型として読み込まれる。ただし`prefecture_code`のようなゼロ埋めコードや`source_stat_inf_id`・`source_sha256`のような数字だけになり得るID列は誤って数値化されるとゼロ埋めが消えるため、`sheets_sync.FORCE_TEXT_COLUMNS`に列挙してテキストとして強制する（先頭に`'`を付与するSheetsの標準的な回避策）。
+
 インストールには`sheets` extra（`gspread`・`google-auth`）が必要（`pip install -e ".[sheets]"`）。
 
 ### 初回セットアップ（手動・一度だけ）
