@@ -36,6 +36,15 @@ def _write_csv(path: Path, rows: list[list[str]]) -> None:
     path.write_text("\n".join(",".join(row) for row in rows) + "\n", encoding="utf-8")
 
 
+def _write_all_dataset_csvs(csv_dir: Path) -> None:
+    """Write a minimal valid CSV for every dataset sync_tableau_sheets expects."""
+    for name in DATASETS:
+        _write_csv(
+            csv_dir / f"{name}.csv",
+            [["date", "prefecture_code", "value"], ["2025-01-01", "01", "1"]],
+        )
+
+
 class SheetsSyncTest(unittest.TestCase):
     def test_load_credentials_info_parses_json(self) -> None:
         self.assertEqual(
@@ -49,17 +58,7 @@ class SheetsSyncTest(unittest.TestCase):
     def test_sync_replaces_each_worksheet_with_its_csv(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             csv_dir = Path(directory)
-            _write_csv(
-                csv_dir / "prefecture_monthly.csv",
-                [["date", "prefecture_code", "value"], ["2025-01-01", "01", "1"]],
-            )
-            _write_csv(
-                csv_dir / "municipality_monthly.csv", [["date", "value"], ["2025-01-01", "2"]]
-            )
-            _write_csv(
-                csv_dir / "metadata.csv",
-                [["dataset_name", "row_count"], ["prefecture_monthly", "1"]],
-            )
+            _write_all_dataset_csvs(csv_dir)
 
             fake_spreadsheet = FakeSpreadsheet()
             result = sync_tableau_sheets(
@@ -80,12 +79,7 @@ class SheetsSyncTest(unittest.TestCase):
     def test_sync_quotes_identifier_columns_as_literal_text(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             csv_dir = Path(directory)
-            _write_csv(
-                csv_dir / "prefecture_monthly.csv",
-                [["date", "prefecture_code", "value"], ["2025-01-01", "01", "1"]],
-            )
-            _write_csv(csv_dir / "municipality_monthly.csv", [["date"], ["2025-01-01"]])
-            _write_csv(csv_dir / "metadata.csv", [["dataset_name"], ["prefecture_monthly"]])
+            _write_all_dataset_csvs(csv_dir)
 
             fake_spreadsheet = FakeSpreadsheet()
             sync_tableau_sheets(

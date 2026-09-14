@@ -8,6 +8,8 @@ import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from ..seasonality import seasonal_profile
+
 
 class AnalysisError(ValueError):
     pass
@@ -142,6 +144,7 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
                 for row in current
             ]
             monthly_occupancy = [float(row["occupancy_rate"]) for row in current]
+            occupancy_profile = seasonal_profile(monthly_occupancy)
             metrics = {
                 "prefecture_code": code,
                 "prefecture_name": current[-1]["prefecture_name"],
@@ -169,10 +172,8 @@ def analyze_database(database: Path, config: AnalysisConfig) -> list[dict]:
                 "recent_occupancy_yoy_pp": _mean(recent, "occupancy_rate") - _mean(recent_previous, "occupancy_rate"),
                 "monthly_cv": statistics.pstdev(monthly_demand) / statistics.mean(monthly_demand),
                 "peak_month_share_pct": max(monthly_demand) / sum(monthly_demand) * 100,
-                "seasonal_occupancy_cv": statistics.pstdev(monthly_occupancy)
-                / statistics.mean(monthly_occupancy),
-                "occupancy_seasonal_range_pp": max(monthly_occupancy)
-                - min(monthly_occupancy),
+                "seasonal_occupancy_cv": occupancy_profile.coefficient_of_variation,
+                "occupancy_seasonal_range_pp": occupancy_profile.range_pp,
                 "top3_demand_share_pct": sum(sorted(monthly_demand, reverse=True)[:3])
                 / sum(monthly_demand)
                 * 100,

@@ -13,6 +13,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .seasonality import seasonal_profile
+
 PREFECTURE_FIELDS = [
     "date",
     "year",
@@ -80,6 +82,33 @@ MUNICIPALITY_FIELDS = [
     "coverage_months",
     "source_file_id",
     "source_stat_inf_id",
+    "source_url",
+    "source_filename",
+    "source_published_on",
+    "source_retrieved_at",
+    "source_sha256",
+    "dataset_generated_at",
+]
+
+# One row per prefecture per completed calendar year: a cross-sectional
+# screening/ranking dataset (which markets are foreign-guest heavy, which
+# swing most between peak and trough season) distinct from the monthly
+# time series above. Seasonal variation is measured within a single
+# calendar year on purpose -- see hotel_supply_demand.seasonality -- so it
+# is not diluted by multi-year trend or the pandemic recovery.
+PREFECTURE_ANNUAL_SUMMARY_FIELDS = [
+    "year",
+    "prefecture_code",
+    "prefecture_name",
+    "release_type",
+    "guest_nights_total",
+    "foreign_share_pct",
+    "occupancy_rate_pct_avg",
+    "occupancy_seasonal_cv",
+    "occupancy_seasonal_range_pp",
+    "occupancy_peak_month",
+    "occupancy_bottom_month",
+    "facility_count",
     "source_url",
     "source_filename",
     "source_published_on",
@@ -381,6 +410,85 @@ def _municipality_rows(
     return rows
 
 
+def _prefecture_annual_summary_rows(
+    connection: sqlite3.Connection, generated_at: str
+) -> list[dict[str, Any]]:
+    """One row per prefecture per completed calendar year of final data.
+
+    A year only qualifies once its 'final' release covers all 12 months for
+    every prefecture -- matching the same completeness the static reports
+    require -- so this naturally excludes a year still awaiting its annual
+    final revision instead of exporting a partial, misleading profile.
+    """
+    facts = connection.execute(
+        """SELECT f.year,f.month,f.prefecture_code,p.name AS prefecture_name,
+                  f.total_guests,f.foreign_guests,f.occupancy_rate,f.facilities,
+                  s.url,s.filename,s.published_on,s.retrieved_at,s.sha256
+             FROM monthly_prefecture_market AS f
+             JOIN prefectures AS p ON p.code=f.prefecture_code
+             JOIN source_files AS s ON s.id=f.source_file_id
+            WHERE f.release_type='final'
+            ORDER BY f.year,f.prefecture_code,f.month"""
+    ).fetchall()
+
+    by_year_prefecture: dict[tuple[int, int], list[sqlite3.Row]] = {}
+    for row in facts:
+        by_year_prefecture.setdefault((row["year"], row["prefecture_code"]), []).append(row)
+
+    rows: list[dict[str, Any]] = []
+    for (year, code), months in sorted(by_year_prefecture.items()):
+        available = {row["month"] for row in months}
+        if available != set(range(1, 13)):
+            continue  # a year still missing months (e.g. awaiting its annual final revision)
+        months = sorted(months, key=lambda row: row["month"])
+        december = months[-1]
+        occupancy = [float(row["occupancy_rate"]) for row in months]
+        profile = seasonal_profile(occupancy)
+        total = sum(row["total_guests"] for row in months)
+        foreign = sum(row["foreign_guests"] for row in months)
+        rows.append(
+            {
+                "year": year,
+                "prefecture_code": f"{code:02d}",
+                "prefecture_name": months[0]["prefecture_name"],
+                "release_type": "final",
+                "guest_nights_total": total,
+                "foreign_share_pct": _foreign_share(foreign, total),
+                "occupancy_rate_pct_avg": profile.average,
+                "occupancy_seasonal_cv": profile.coefficient_of_variation,
+                "occupancy_seasonal_range_pp": profile.range_pp,
+                "occupancy_peak_month": profile.peak_month,
+                "occupancy_bottom_month": profile.bottom_month,
+                "facility_count": december["facilities"],
+                "source_url": december["url"],
+                "source_filename": december["filename"],
+                "source_published_on": december["published_on"],
+                "source_retrieved_at": december["retrieved_at"],
+                "source_sha256": december["sha256"],
+                "dataset_generated_at": generated_at,
+            }
+        )
+    return rows
+
+
+def _validate_annual_summary_rows(rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        raise BiExportError("prefecture_annual_summary export is empty")
+    if set(rows[0]) != set(PREFECTURE_ANNUAL_SUMMARY_FIELDS):
+        raise BiExportError("prefecture_annual_summary export schema does not match its contract")
+    seen: set[tuple[Any, ...]] = set()
+    for row in rows:
+        key = (row["year"], row["prefecture_code"])
+        if key in seen:
+            raise BiExportError(f"duplicate prefecture_annual_summary export key: {key}")
+        seen.add(key)
+        occupancy = row["occupancy_rate_pct_avg"]
+        if not 0 <= occupancy <= 200:
+            raise BiExportError(
+                f"invalid prefecture_annual_summary occupancy rate: {key} {occupancy}"
+            )
+
+
 def _validate_rows(
     rows: list[dict[str, Any]], fields: list[str], keys: list[str], dataset: str
 ) -> None:
@@ -461,6 +569,7 @@ def export_bi_data(database: Path, output_dir: Path, base_year: int = 2019) -> d
         _require_tables(connection)
         prefecture_rows = _prefecture_rows(connection, base_year, generated_at)
         municipality_rows = _municipality_rows(connection, base_year, generated_at)
+        annual_summary_rows = _prefecture_annual_summary_rows(connection, generated_at)
     finally:
         connection.close()
 
@@ -476,7 +585,9 @@ def export_bi_data(database: Path, output_dir: Path, base_year: int = 2019) -> d
         ["date", "municipality_key"],
         "municipality",
     )
+    _validate_annual_summary_rows(annual_summary_rows)
     observed_municipalities = sum(row["record_status"] == "published" for row in municipality_rows)
+    annual_summary_years = sorted({row["year"] for row in annual_summary_rows})
     metadata_rows = [
         {
             "dataset_name": "prefecture_monthly",
@@ -506,6 +617,24 @@ def export_bi_data(database: Path, output_dir: Path, base_year: int = 2019) -> d
             "dataset_generated_at": generated_at,
             "notes": "not_listed rows are an explicit dense calendar and must remain null, not zero.",
         },
+        {
+            "dataset_name": "prefecture_annual_summary",
+            "row_count": len(annual_summary_rows),
+            "observed_row_count": len(annual_summary_rows),
+            "min_date": f"{annual_summary_years[0]}-01-01",
+            "max_date": f"{annual_summary_years[-1]}-12-31",
+            "geography_level": "prefecture",
+            "release_type": "final",
+            "data_scope": "prefecture all facilities, completed calendar years only",
+            "source_name": SOURCE_NAME,
+            "source_url": SOURCE_URL,
+            "dataset_generated_at": generated_at,
+            "notes": (
+                "One row per prefecture per completed calendar year, for cross-sectional "
+                "ranking/screening. Seasonal CV/range are within that single calendar year, "
+                "not a multi-year window."
+            ),
+        },
     ]
 
     output_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -514,6 +643,11 @@ def export_bi_data(database: Path, output_dir: Path, base_year: int = 2019) -> d
         staged.mkdir()
         _write_csv(staged / "prefecture_monthly.csv", PREFECTURE_FIELDS, prefecture_rows)
         _write_csv(staged / "municipality_monthly.csv", MUNICIPALITY_FIELDS, municipality_rows)
+        _write_csv(
+            staged / "prefecture_annual_summary.csv",
+            PREFECTURE_ANNUAL_SUMMARY_FIELDS,
+            annual_summary_rows,
+        )
         _write_csv(staged / "metadata.csv", METADATA_FIELDS, metadata_rows)
         _replace_directory(staged, output_dir)
 
@@ -527,6 +661,7 @@ def export_bi_data(database: Path, output_dir: Path, base_year: int = 2019) -> d
                 "rows": len(municipality_rows),
                 "observed_rows": observed_municipalities,
             },
+            "prefecture_annual_summary": {"rows": len(annual_summary_rows)},
             "metadata": {"rows": len(metadata_rows)},
         },
     }

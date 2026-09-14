@@ -33,8 +33,10 @@ jobs:
           scripts/validate_repository.py
           src/hotel_supply_demand/bi_export.py
           src/hotel_supply_demand/sheets_sync.py
+          src/hotel_supply_demand/seasonality.py
           tests/test_bi_export.py
           tests/test_sheets_sync.py
+          tests/test_seasonality.py
           tests/test_phase6_scripts.py &&
           ruff check --select E4,E7,E9,F src tests scripts
 
@@ -44,6 +46,7 @@ jobs:
           scripts
           src/hotel_supply_demand/bi_export.py
           src/hotel_supply_demand/sheets_sync.py
+          src/hotel_supply_demand/seasonality.py
           src/hotel_supply_demand/update.py
           src/hotel_supply_demand/municipality/discovery.py
           src/hotel_supply_demand/prefecture/discovery.py

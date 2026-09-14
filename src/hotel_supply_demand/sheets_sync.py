@@ -21,7 +21,12 @@ import json
 from pathlib import Path
 from typing import Any, Protocol
 
-DATASETS = ["prefecture_monthly", "municipality_monthly", "metadata"]
+DATASETS = [
+    "prefecture_monthly",
+    "municipality_monthly",
+    "prefecture_annual_summary",
+    "metadata",
+]
 
 SHEETS_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
